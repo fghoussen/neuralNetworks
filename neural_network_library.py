@@ -3,8 +3,9 @@
 
 from random import random
 from math import exp, log2
+import matplotlib.pyplot as plt
 
-def _initialize_network(n_inputs, n_hidden, n_outputs):
+def _initialize_network(n_inputs, n_hidden, n_outputs, debug):
     network = list()
     hidden_layer = [{'weights':[random() for i in range(n_inputs + 1)]} for i in range(n_hidden)] # +1 for bias.
     network.append(hidden_layer)
@@ -15,6 +16,11 @@ def _initialize_network(n_inputs, n_hidden, n_outputs):
         print('    layer %s' % idxl)
         for idxn, neuron in enumerate(layer):
             print('        neuron %s' % idxn, neuron)
+    if debug:
+        for layer in network:
+            for neuron in layer:
+                neuron['debug_error'] = []
+                neuron['debug_weights'] = []
     return network
 
 def _neuron_activate(weights, inputs):
@@ -43,7 +49,7 @@ def _forward_propagate(network, row):
 def _cross_entropy(p, q, eps=1e-15):
     return -sum([p[i]*log2(q[i]+eps) for i in range(len(p))])
 
-def _backward_propagate_error(network, expected):
+def _backward_propagate_error(network, expected, debug):
     for i in reversed(range(len(network))): # Looping backward from output to hidden layer.
         layer = network[i]
         errors = list()
@@ -60,8 +66,10 @@ def _backward_propagate_error(network, expected):
         for j in range(len(layer)):
             neuron = layer[j]
             neuron['delta'] = errors[j] * _sigmoid_transfer_derivative(neuron['output'])
+            if debug:
+                neuron['debug_error'].append(errors[j])
 
-def _update_weights(network, row, l_rate):
+def _update_weights(network, row, l_rate, debug):
     for i in range(len(network)):
         inputs = row[:-1] # All but bias.
         if i != 0:
@@ -71,9 +79,30 @@ def _update_weights(network, row, l_rate):
             for j in range(len(inputs)):
                 neuron['weights'][j] += l_rate * neuron['delta'] * inputs[j]
             neuron['weights'][-1] += l_rate * neuron['delta'] # Bias (associated input = 1.) is the last weight in the list.
+            if debug:
+                neuron['debug_weights'].append(neuron['weights'])
 
-def network_train(train_set, val_set, n_inputs, n_hidden, n_outputs, n_epoch, l_rate):
-    network = _initialize_network(n_inputs, n_hidden, n_outputs)
+def _network_debug_plot(network):
+    _, axes = plt.subplots(max([len(layer) for layer in network]), len(network))
+    plt.suptitle('neural network debug_error')
+    for idxl, layer in enumerate(network):
+        for idxn, neuron in enumerate(layer):
+            axes[idxn][idxl].set_title('layer %s, neuron %s' % (idxl, idxn))
+            axes[idxn][idxl].plot(neuron['debug_error'], label='error')
+            axes[idxn][idxl].legend()
+    _, axes = plt.subplots(max([len(layer) for layer in network]), len(network))
+    plt.suptitle('neural network debug_weights')
+    for idxl, layer in enumerate(network):
+        for idxn, neuron in enumerate(layer):
+            axes[idxn][idxl].set_title('layer %s, neuron %s' % (idxl, idxn))
+            for idxw in range(len(neuron['weights'])):
+                debug_weights = [weights[idxw] for weights in neuron['debug_weights']]
+                lbl = 'weights %s' % idxw if idxw != len(neuron['weights']) - 1 else 'bias'
+                axes[idxn][idxl].plot(debug_weights, label=lbl)
+            axes[idxn][idxl].legend()
+
+def network_train(train_set, val_set, n_inputs, n_hidden, n_outputs, n_epoch, l_rate, debug=False):
+    network = _initialize_network(n_inputs, n_hidden, n_outputs, debug)
     print('network training')
     metrics = {'train_error': [], 'val_error': []}
     for epoch in range(n_epoch):
@@ -83,13 +112,15 @@ def network_train(train_set, val_set, n_inputs, n_hidden, n_outputs, n_epoch, l_
             expected = [0 for i in range(n_outputs)]
             expected[row[-1]] = 1
             sum_error += _cross_entropy(expected, outputs)
-            _backward_propagate_error(network, expected)
-            _update_weights(network, row, l_rate)
+            _backward_propagate_error(network, expected, debug)
+            _update_weights(network, row, l_rate, debug)
         print('    epoch=%d, lrate=%.3f, sum_error=%.3f' % (epoch, l_rate, sum_error))
         _, error = network_evaluate(train_set, network)
         metrics['train_error'].append(error)
         _, error = network_evaluate(val_set, network)
         metrics['val_error'].append(error)
+    if debug:
+        _network_debug_plot(network)
     return network, metrics
 
 def network_predict(network, row):

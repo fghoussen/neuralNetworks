@@ -16,6 +16,7 @@ def main():
     std_classes = 2 # Spread classes around centers to make data less/more predictable/noisy.
     x, y = make_blobs(n_samples=1000, centers=n_classes, random_state=0, cluster_std=std_classes)
     _, axes = plt.subplots(2, 5)
+    plt.suptitle('neural network results')
     axes[0][0].scatter(x[:, 0], x[:, 1], c=y)
     axes[0][0].set_title('data')
     xlim, ylim = axes[0][0].get_xlim(), axes[0][0].get_ylim()
@@ -37,7 +38,7 @@ def main():
     # Train neural network.
     train_set = [[x_train[i, 0], x_train[i, 1], y_train[i]] for i in range(x_train.shape[0])]
     val_set = [[x_val[i, 0], x_val[i, 1], y_val[i]] for i in range(x_val.shape[0])]
-    network, metrics = network_train(train_set, val_set, 2, 2, n_classes, 1000, 0.001)
+    network, metrics = network_train(train_set, val_set, 2, 2, n_classes, 1000, 0.001, debug=True)
     predictions, error = network_evaluate(train_set, network)
     axes[1][2].plot(metrics['train_error'], label='train error', marker='o')
     axes[1][2].plot(metrics['val_error'], label='val error', marker='o')
