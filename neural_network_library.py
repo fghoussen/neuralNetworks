@@ -101,6 +101,12 @@ def _network_debug_plot(network):
                 axes[idxn][idxl].plot(debug_weights, label=lbl)
             axes[idxn][idxl].legend()
 
+def _network_metrics(network, metrics, train_set, val_set):
+    _, error = network_evaluate(train_set, network)
+    metrics['train_error'].append(error)
+    _, error = network_evaluate(val_set, network)
+    metrics['val_error'].append(error)
+
 def network_train(train_set, val_set, n_inputs, n_hidden, n_outputs, n_epoch, l_rate, debug=False):
     network = _initialize_network(n_inputs, n_hidden, n_outputs, debug)
     print('network training')
@@ -115,10 +121,7 @@ def network_train(train_set, val_set, n_inputs, n_hidden, n_outputs, n_epoch, l_
             _backward_propagate_error(network, expected, debug)
             _update_weights(network, row, l_rate, debug)
         print('    epoch=%d, lrate=%.3f, sum_error=%.3f' % (epoch, l_rate, sum_error))
-        _, error = network_evaluate(train_set, network)
-        metrics['train_error'].append(error)
-        _, error = network_evaluate(val_set, network)
-        metrics['val_error'].append(error)
+        _network_metrics(network, metrics, train_set, val_set)
     if debug:
         _network_debug_plot(network)
     return network, metrics
