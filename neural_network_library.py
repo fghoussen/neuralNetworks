@@ -113,13 +113,14 @@ def network_train(train_set, val_set, n_inputs, n_hidden, n_outputs, n_epoch, l_
     metrics = {'train_error': [], 'val_error': []}
     for epoch in range(n_epoch):
         sum_error = 0
-        for row in train_set:
+        for idxr, row in enumerate(train_set):
             outputs = _forward_propagate(network, row)
             expected = [0 for i in range(n_outputs)]
             expected[row[-1]] = 1
             sum_error += _cross_entropy(expected, outputs)
-            _backward_propagate_error(network, expected, debug)
-            _update_weights(network, row, l_rate, debug)
+            dbg = True if debug and idxr == len(train_set) - 1 else False
+            _backward_propagate_error(network, expected, dbg)
+            _update_weights(network, row, l_rate, dbg)
         print('    epoch=%d, lrate=%.3f, sum_error=%.3f' % (epoch, l_rate, sum_error))
         _network_metrics(network, metrics, train_set, val_set)
     if debug:
