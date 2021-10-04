@@ -19,7 +19,9 @@ def _initialize_network(n_inputs, n_hidden, n_outputs, debug):
     if debug:
         for layer in network:
             for neuron in layer:
+                neuron['debug_delta'] = []
                 neuron['debug_error'] = []
+                neuron['debug_gradient'] = []
                 neuron['debug_weights'] = []
     return network
 
@@ -65,9 +67,12 @@ def _backward_propagate_error(network, expected, debug):
                 errors.append(expected[j] - neuron['output'])
         for j in range(len(layer)):
             neuron = layer[j]
-            neuron['delta'] = errors[j] * _sigmoid_transfer_derivative(neuron['output'])
+            gradient = _sigmoid_transfer_derivative(neuron['output'])
+            neuron['delta'] = errors[j] * gradient
             if debug:
+                neuron['debug_delta'].append(neuron['delta'])
                 neuron['debug_error'].append(errors[j])
+                neuron['debug_gradient'].append(gradient)
 
 def _update_weights(network, row, l_rate, debug):
     for i in range(len(network)):
@@ -83,13 +88,14 @@ def _update_weights(network, row, l_rate, debug):
                 neuron['debug_weights'].append(neuron['weights'])
 
 def _network_debug_plot(network):
-    _, axes = plt.subplots(max([len(layer) for layer in network]), len(network))
-    plt.suptitle('neural network debug_error')
-    for idxl, layer in enumerate(network):
-        for idxn, neuron in enumerate(layer):
-            axes[idxn][idxl].set_title('layer %s, neuron %s' % (idxl, idxn))
-            axes[idxn][idxl].plot(neuron['debug_error'], label='error')
-            axes[idxn][idxl].legend()
+    for data in ['debug_error', 'debug_delta', 'debug_gradient']:
+        _, axes = plt.subplots(max([len(layer) for layer in network]), len(network))
+        plt.suptitle('neural network %s' % data)
+        for idxl, layer in enumerate(network):
+            for idxn, neuron in enumerate(layer):
+                axes[idxn][idxl].set_title('layer %s, neuron %s' % (idxl, idxn))
+                axes[idxn][idxl].plot(neuron[data], label=data)
+                axes[idxn][idxl].legend()
     _, axes = plt.subplots(max([len(layer) for layer in network]), len(network))
     plt.suptitle('neural network debug_weights')
     for idxl, layer in enumerate(network):
