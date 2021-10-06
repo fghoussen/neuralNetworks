@@ -48,8 +48,8 @@ def _forward_propagate(network, row):
         inputs = new_inputs
     return inputs
 
-def _cross_entropy(p, q, eps=1e-15):
-    return -sum([p[i]*log2(q[i]+eps) for i in range(len(p))])
+def _cross_entropy(expected, prediction, eps=1e-15):
+    return -sum([expected[i]*log2(prediction[i]+eps) for i in range(len(expected))])
 
 def _backward_propagate_error(network, expected, debug):
     for i in reversed(range(len(network))): # Looping backward from output to hidden layer.
