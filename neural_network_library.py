@@ -137,10 +137,11 @@ def _network_debug_plot(network):
             axes[idxn][idxl].legend()
 
 def _network_metrics(network, metrics, train_set, val_set):
-    _, error = network_evaluate(train_set, network)
-    metrics['train_error'].append(error)
-    _, error = network_evaluate(val_set, network)
-    metrics['val_error'].append(error)
+    _, train_error = network_evaluate(train_set, network)
+    metrics['train_error'].append(train_error)
+    _, val_error = network_evaluate(val_set, network)
+    metrics['val_error'].append(val_error)
+    return train_error, val_error
 
 def network_train(train_set, val_set,
                   n_inputs, n_hidden, n_outputs, activation_fct,
@@ -149,17 +150,15 @@ def network_train(train_set, val_set,
     print('network training')
     metrics = {'train_error': [], 'val_error': []}
     for epoch in range(n_epoch):
-        sum_error = 0
         for idxr, row in enumerate(train_set):
             outputs = _forward_propagate(network, row)
             expected = [0 for i in range(n_outputs)]
             expected[row[-1]] = 1
-            sum_error += _cross_entropy(expected, outputs)
             dbg = True if debug and idxr == len(train_set) - 1 else False
             _backward_propagate_error(network, expected, dbg)
             _update_weights(network, row, l_rate, dbg)
-        print('    epoch=%d, lrate=%.3f, sum_error=%.3f' % (epoch, l_rate, sum_error))
-        _network_metrics(network, metrics, train_set, val_set)
+        train_error, val_error = _network_metrics(network, metrics, train_set, val_set)
+        print('    epoch=%d, lrate=%.3f, train_error=%.2f%%, val_error=%.2f%%' % (epoch, l_rate, train_error, val_error))
     if debug:
         _network_debug_plot(network)
     return network, metrics
