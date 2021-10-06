@@ -38,7 +38,9 @@ def main():
     # Train neural network.
     train_set = [[x_train[i, 0], x_train[i, 1], y_train[i]] for i in range(x_train.shape[0])]
     val_set = [[x_val[i, 0], x_val[i, 1], y_val[i]] for i in range(x_val.shape[0])]
-    network, metrics = network_train(train_set, val_set, 2, 2, n_classes, 1000, 0.001, debug=True)
+    network, metrics = network_train(train_set, val_set,
+                                     2, 2, n_classes, 'sigmoid',
+                                     1000, 0.001, debug=True)
     predictions, error = network_evaluate(train_set, network)
     axes[1][2].plot(metrics['train_error'], label='train error', marker='o')
     axes[1][2].plot(metrics['val_error'], label='val error', marker='o')

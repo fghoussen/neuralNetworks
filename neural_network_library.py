@@ -5,12 +5,15 @@ from random import random
 from math import exp, log2
 import matplotlib.pyplot as plt
 
-def _initialize_network(n_inputs, n_hidden, n_outputs, debug):
+def _initialize_network(n_inputs, n_hidden, n_outputs, activation_fct, debug):
     network = list()
     hidden_layer = [{'weights':[random() for i in range(n_inputs + 1)]} for i in range(n_hidden)] # +1 for bias.
     network.append(hidden_layer)
     output_layer = [{'weights':[random() for i in range(n_hidden + 1)]} for i in range(n_outputs)] # +1 for bias.
     network.append(output_layer)
+    for layer in network:
+        for neuron in layer:
+            neuron['activation_fct'] = activation_fct
     print('network initialised')
     for idxl, layer in enumerate(network):
         print('    layer %s' % idxl)
@@ -37,13 +40,39 @@ def _sigmoid_transfer(activation):
 def _sigmoid_transfer_derivative(output):
     return output * (1.0 - output)
 
+def _relu_transfer(activation):
+    if activation > 0.:
+        return activation
+    return 0.
+
+def _relu_transfer_derivative(activation):
+    if activation > 0.:
+        return 1.
+    return 0.
+
+def _transfer(activation, activation_fct):
+    if activation_fct == 'sigmoid':
+        return _sigmoid_transfer(activation)
+    elif activation_fct == 'relu':
+        return _relu_transfer(activation)
+    else:
+        assert True, 'Error: unknown transfer fonction.'
+
+def _transfer_derivative(activation, activation_fct):
+    if activation_fct == 'sigmoid':
+        return _sigmoid_transfer_derivative(activation)
+    elif activation_fct == 'relu':
+        return _relu_transfer_derivative(activation)
+    else:
+        assert True, 'Error: unknown transfer fonction.'
+
 def _forward_propagate(network, row):
     inputs = row
     for layer in network:
         new_inputs = []
         for neuron in layer:
             activation = _neuron_activate(neuron['weights'], inputs)
-            neuron['output'] = _sigmoid_transfer(activation)
+            neuron['output'] = _transfer(activation, neuron['activation_fct'])
             new_inputs.append(neuron['output'])
         inputs = new_inputs
     return inputs
@@ -67,7 +96,7 @@ def _backward_propagate_error(network, expected, debug):
                 errors.append(expected[j] - neuron['output'])
         for j in range(len(layer)):
             neuron = layer[j]
-            gradient = _sigmoid_transfer_derivative(neuron['output'])
+            gradient = _transfer_derivative(neuron['output'], neuron['activation_fct'])
             neuron['delta'] = errors[j] * gradient
             if debug:
                 neuron['debug_delta'].append(neuron['delta'])
@@ -113,8 +142,10 @@ def _network_metrics(network, metrics, train_set, val_set):
     _, error = network_evaluate(val_set, network)
     metrics['val_error'].append(error)
 
-def network_train(train_set, val_set, n_inputs, n_hidden, n_outputs, n_epoch, l_rate, debug=False):
-    network = _initialize_network(n_inputs, n_hidden, n_outputs, debug)
+def network_train(train_set, val_set,
+                  n_inputs, n_hidden, n_outputs, activation_fct,
+                  n_epoch, l_rate, debug=False):
+    network = _initialize_network(n_inputs, n_hidden, n_outputs, activation_fct, debug)
     print('network training')
     metrics = {'train_error': [], 'val_error': []}
     for epoch in range(n_epoch):
