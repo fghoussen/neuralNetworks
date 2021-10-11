@@ -67,8 +67,8 @@ def _transfer_derivative(activation, activation_fct):
     else:
         assert True, 'Error: unknown transfer fonction.'
 
-def _forward_propagate(network, row):
-    inputs = row
+def _forward_propagate(network, data):
+    inputs = data
     for layer in network:
         new_inputs = []
         for neuron in layer:
@@ -104,9 +104,9 @@ def _backward_propagate_error(network, expected, debug):
                 neuron['debug_error'].append(errors[j])
                 neuron['debug_gradient'].append(gradient)
 
-def _update_weights(network, row, l_rate, debug):
+def _update_weights(network, data, l_rate, debug):
     for i in range(len(network)):
-        inputs = row[:-1] # All but bias.
+        inputs = data
         if i != 0:
             prev_layer = network[i - 1] # Looping over hidden layer input.
             inputs = [neuron['output'] for neuron in prev_layer]
@@ -145,19 +145,21 @@ def _network_metrics(network, metrics, train_set, val_set):
     return train_error, val_error
 
 def network_train(train_set, val_set,
-                  n_inputs, n_hidden, n_outputs, activation_fct,
-                  n_epoch, l_rate, debug=False):
+                  n_hidden, n_outputs, activation_fct, n_epoch, l_rate,
+                  debug=False):
+    n_inputs = len(train_set[0]) - 1 # All data but not the target (associated to the data).
     network = _initialize_network(n_inputs, n_hidden, n_outputs, activation_fct, debug)
     print('network training')
     metrics = {'train_error': [], 'val_error': []}
     for epoch in range(n_epoch):
         for idxr, row in enumerate(train_set):
-            outputs = _forward_propagate(network, row)
+            data, target = row[:-1], row[-1]
+            outputs = _forward_propagate(network, data)
             expected = [0 for i in range(n_outputs)]
-            expected[row[-1]] = 1
+            expected[target] = 1
             dbg = True if debug and idxr == len(train_set) - 1 else False
             _backward_propagate_error(network, expected, dbg)
-            _update_weights(network, row, l_rate, dbg)
+            _update_weights(network, data, l_rate, dbg)
         train_error, val_error = _network_metrics(network, metrics, train_set, val_set)
         print('    epoch=%d, lrate=%.3f, train_error=%.2f%%, val_error=%.2f%%' % (epoch, l_rate, train_error, val_error))
     if debug:
@@ -165,15 +167,16 @@ def network_train(train_set, val_set,
     return network, metrics
 
 def network_predict(network, row):
-    outputs = _forward_propagate(network, row)
+    data = row[:-1]
+    outputs = _forward_propagate(network, data)
     return outputs.index(max(outputs))
 
 def network_evaluate(data_set, network):
     predictions, good_predictions = [], 0
     for row in data_set:
-        expected_row = row[-1]
+        target = row[-1]
         predicted_row = network_predict(network, row)
-        if predicted_row == expected_row:
+        if predicted_row == target:
             good_predictions += 1
         predictions.append(predicted_row)
     error = (len(data_set) - good_predictions)*100./len(data_set) # Error %
