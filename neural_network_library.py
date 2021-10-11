@@ -6,6 +6,7 @@ from math import exp, log2
 import matplotlib.pyplot as plt
 
 def _initialize_network(n_inputs, n_hidden, n_outputs, activation_fct, debug):
+    assert n_hidden >= n_outputs, 'n_hidden < n_outputs: may result in information loss.'
     network = list()
     hidden_layer = [{'weights':[random() for i in range(n_inputs + 1)]} for i in range(n_hidden)] # +1 for bias.
     network.append(hidden_layer)
