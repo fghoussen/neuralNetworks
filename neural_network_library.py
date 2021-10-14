@@ -5,20 +5,19 @@ from random import random
 from math import exp, log2
 import matplotlib.pyplot as plt
 
-def _initialize_network(n_inputs, n_hidden, n_outputs, activation_fct, debug):
+def _initialize_network(n_inputs, n_hidden, hidden_af, n_outputs, output_af, debug):
     assert n_hidden >= n_outputs, 'n_hidden < n_outputs: may result in information loss.'
     network = list()
     hidden_layer = [{'weights':[random() for i in range(n_inputs)]} for i in range(n_hidden)]
     for neuron in hidden_layer:
         neuron['bias'] = random()
+        neuron['activation_fct'] = hidden_af
     network.append(hidden_layer)
     output_layer = [{'weights':[random() for i in range(n_hidden)]} for i in range(n_outputs)]
     for neuron in output_layer:
         neuron['bias'] = random()
+        neuron['activation_fct'] = output_af
     network.append(output_layer)
-    for layer in network:
-        for neuron in layer:
-            neuron['activation_fct'] = activation_fct
     print('network initialised')
     for idxl, layer in enumerate(network):
         print('    layer %s' % idxl)
@@ -151,10 +150,10 @@ def _network_metrics(network, metrics, train_set, val_set):
     return train_error, val_error
 
 def network_train(train_set, val_set,
-                  n_hidden, n_outputs, activation_fct, n_epoch, l_rate,
+                  n_hidden, hidden_af, n_outputs, output_af, n_epoch, l_rate,
                   debug=False):
     n_inputs = len(train_set[0]) - 1 # All data but not the target (associated to the data).
-    network = _initialize_network(n_inputs, n_hidden, n_outputs, activation_fct, debug)
+    network = _initialize_network(n_inputs, n_hidden, hidden_af, n_outputs, output_af, debug)
     print('network training')
     metrics = {'train_error': [], 'val_error': []}
     for epoch in range(n_epoch):
