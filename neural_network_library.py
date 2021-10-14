@@ -39,35 +39,35 @@ def _neuron_activate(weights, bias, inputs):
         activation += weights[i] * inputs[i]
     return activation
 
-def _sigmoid_transfer(activation):
+def _transfer_sigmoid(activation):
     return 1.0 / (1.0 + exp(-activation))
 
-def _sigmoid_transfer_derivative(output):
+def _transfer_derivative_sigmoid(output):
     return output * (1.0 - output)
 
-def _relu_transfer(activation):
+def _transfer_relu(activation):
     if activation > 0.:
         return activation
     return 0.
 
-def _relu_transfer_derivative(activation):
+def _transfer_derivative_relu(activation):
     if activation > 0.:
         return 1.
     return 0.
 
 def _transfer(activation, activation_fct):
     if activation_fct == 'sigmoid':
-        return _sigmoid_transfer(activation)
+        return _transfer_sigmoid(activation)
     elif activation_fct == 'relu':
-        return _relu_transfer(activation)
+        return _transfer_relu(activation)
     else:
         assert True, 'Error: unknown transfer fonction.'
 
 def _transfer_derivative(activation, activation_fct):
     if activation_fct == 'sigmoid':
-        return _sigmoid_transfer_derivative(activation)
+        return _transfer_derivative_sigmoid(activation)
     elif activation_fct == 'relu':
-        return _relu_transfer_derivative(activation)
+        return _transfer_derivative_relu(activation)
     else:
         assert True, 'Error: unknown transfer fonction.'
 
