@@ -8,9 +8,13 @@ import matplotlib.pyplot as plt
 def _initialize_network(n_inputs, n_hidden, n_outputs, activation_fct, debug):
     assert n_hidden >= n_outputs, 'n_hidden < n_outputs: may result in information loss.'
     network = list()
-    hidden_layer = [{'weights':[random() for i in range(n_inputs + 1)]} for i in range(n_hidden)] # +1 for bias.
+    hidden_layer = [{'weights':[random() for i in range(n_inputs)]} for i in range(n_hidden)]
+    for neuron in hidden_layer:
+        neuron['bias'] = random()
     network.append(hidden_layer)
-    output_layer = [{'weights':[random() for i in range(n_hidden + 1)]} for i in range(n_outputs)] # +1 for bias.
+    output_layer = [{'weights':[random() for i in range(n_hidden)]} for i in range(n_outputs)]
+    for neuron in output_layer:
+        neuron['bias'] = random()
     network.append(output_layer)
     for layer in network:
         for neuron in layer:
@@ -27,11 +31,12 @@ def _initialize_network(n_inputs, n_hidden, n_outputs, activation_fct, debug):
                 neuron['debug_error'] = []
                 neuron['debug_gradient'] = []
                 neuron['debug_weights'] = []
+                neuron['debug_bias'] = []
     return network
 
-def _neuron_activate(weights, inputs):
-    activation = weights[-1] # Bias (associated input = 1.) is the last weight in the list.
-    for i in range(len(weights)-1): # Sum all but bias.
+def _neuron_activate(weights, bias, inputs):
+    activation = bias # Bias (with associated input = 1.).
+    for i in range(len(weights)):
         activation += weights[i] * inputs[i]
     return activation
 
@@ -72,7 +77,7 @@ def _forward_propagate(network, data):
     for layer in network:
         new_inputs = []
         for neuron in layer:
-            activation = _neuron_activate(neuron['weights'], inputs)
+            activation = _neuron_activate(neuron['weights'], neuron['bias'], inputs)
             neuron['output'] = _transfer(activation, neuron['activation_fct'])
             new_inputs.append(neuron['output'])
         inputs = new_inputs
@@ -113,9 +118,10 @@ def _update_weights(network, data, l_rate, debug):
         for neuron in network[i]:
             for j in range(len(inputs)):
                 neuron['weights'][j] += l_rate * neuron['delta'] * inputs[j]
-            neuron['weights'][-1] += l_rate * neuron['delta'] # Bias (associated input = 1.) is the last weight in the list.
+            neuron['bias'] += l_rate * neuron['delta'] # Bias (with associated input = 1.).
             if debug:
                 neuron['debug_weights'].append(neuron['weights'])
+                neuron['debug_bias'].append(neuron['bias'])
 
 def _network_debug_plot(network):
     for data in ['debug_error', 'debug_delta', 'debug_gradient']:
@@ -127,14 +133,14 @@ def _network_debug_plot(network):
                 axes[idxn][idxl].plot(neuron[data], label=data)
                 axes[idxn][idxl].legend()
     _, axes = plt.subplots(max([len(layer) for layer in network]), len(network))
-    plt.suptitle('neural network debug_weights')
+    plt.suptitle('neural network debug_weights/debug_bias')
     for idxl, layer in enumerate(network):
         for idxn, neuron in enumerate(layer):
             axes[idxn][idxl].set_title('layer %s, neuron %s' % (idxl, idxn))
             for idxw in range(len(neuron['weights'])):
                 debug_weights = [weights[idxw] for weights in neuron['debug_weights']]
-                lbl = 'weights %s' % idxw if idxw != len(neuron['weights']) - 1 else 'bias'
-                axes[idxn][idxl].plot(debug_weights, label=lbl)
+                axes[idxn][idxl].plot(debug_weights, label=('weights %s' % idxw))
+            axes[idxn][idxl].plot(neuron['debug_bias'], label='bias')
             axes[idxn][idxl].legend()
 
 def _network_metrics(network, metrics, train_set, val_set):
