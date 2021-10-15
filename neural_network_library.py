@@ -88,24 +88,23 @@ def _cross_entropy(expected, prediction, eps=1e-15):
 def _backward_propagate_error(network, expected, debug):
     for i in reversed(range(len(network))): # Looping backward from output to hidden layer.
         layer = network[i]
-        errors = list()
         if i != len(network)-1: # Hidden layer.
             for j in range(len(layer)):
                 error, next_layer = 0., network[i + 1]
                 for neuron in next_layer: # Looping over hidden layer output.
                     error += (neuron['weights'][j] * neuron['delta'])
-                errors.append(error)
+                layer[j]['error'] = error
         else: # Output layer.
             for j in range(len(layer)):
                 neuron = layer[j]
-                errors.append(expected[j] - neuron['output'])
+                neuron['error'] = expected[j] - neuron['output']
         for j in range(len(layer)):
             neuron = layer[j]
             gradient = _transfer_derivative(neuron['output'], neuron['activation_fct'])
-            neuron['delta'] = errors[j] * gradient
+            neuron['delta'] = neuron['error'] * gradient
             if debug:
                 neuron['debug_delta'].append(neuron['delta'])
-                neuron['debug_error'].append(errors[j])
+                neuron['debug_error'].append(neuron['error'])
                 neuron['debug_gradient'].append(gradient)
 
 def _update_weights(network, data, l_rate, debug):
