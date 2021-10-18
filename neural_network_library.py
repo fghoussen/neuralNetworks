@@ -4,6 +4,7 @@
 from random import random
 from math import exp, log2
 import matplotlib.pyplot as plt
+import numpy as np
 
 def _initialize_network(n_inputs, n_hidden, hidden_af, n_outputs, output_af, debug):
     assert n_hidden >= n_outputs, 'n_hidden < n_outputs: may result in information loss.'
@@ -82,22 +83,36 @@ def _forward_propagate(network, data):
         inputs = new_inputs
     return inputs
 
-def _cross_entropy(expected, prediction, eps=1e-15):
-    return -sum([expected[i]*log2(prediction[i]+eps) for i in range(len(expected))])
+def _cross_entropy(expected, predicted, eps=1e-15):
+    return -sum([expected[i]*log2(predicted[i]+eps) for i in range(len(expected))])
+
+def _softmax(vector):
+    e = np.exp(vector)
+    return e / e.sum()
+
+def _compute_loss(output_layer, expected):
+    for j in range(len(output_layer)):
+        output_neuron = output_layer[j]
+        error = expected[j] - output_neuron['output']
+        output_neuron['loss'] = error
+
+    output_loss = [output_neuron['loss'] for output_neuron in output_layer]
+    softmax_loss= _softmax(output_loss)
+    loss = _cross_entropy(expected, softmax_loss)
+    return loss
 
 def _backward_propagate_error(network, expected, debug):
     for i in reversed(range(len(network))): # Looping backward from output to hidden layer.
         layer = network[i]
-        if i != len(network)-1: # Hidden layer.
+        if i == len(network)-1: # Output layer.
+            for neuron in layer:
+                neuron['error'] = neuron['loss'] # Initialize error with loss.
+        else: # Hidden layer.
             for j in range(len(layer)):
                 error, next_layer = 0., network[i + 1]
                 for neuron in next_layer: # Looping over hidden layer output.
                     error += (neuron['weights'][j] * neuron['delta'])
                 layer[j]['error'] = error
-        else: # Output layer.
-            for j in range(len(layer)):
-                neuron = layer[j]
-                neuron['error'] = expected[j] - neuron['output']
         for j in range(len(layer)):
             neuron = layer[j]
             gradient = _transfer_derivative(neuron['output'], neuron['activation_fct'])
@@ -156,16 +171,18 @@ def network_train(train_set, val_set,
     print('network training')
     metrics = {'train_error': [], 'val_error': []}
     for epoch in range(n_epoch):
+        loss = 0.
         for idxr, row in enumerate(train_set):
             data, target = row[:-1], row[-1]
             outputs = _forward_propagate(network, data)
             expected = [0 for i in range(n_outputs)]
             expected[target] = 1
             dbg = True if debug and idxr == len(train_set) - 1 else False
+            loss += _compute_loss(network[-1], expected)
             _backward_propagate_error(network, expected, dbg)
             _update_weights(network, data, l_rate, dbg)
         train_error, val_error = _network_metrics(network, metrics, train_set, val_set)
-        print('    epoch=%d, lrate=%.3f, train_error=%.2f%%, val_error=%.2f%%' % (epoch, l_rate, train_error, val_error))
+        print('    epoch=%d, lrate=%.3f, loss=%.3f train_error=%.3f%%, val_error=%.3f%%' % (epoch, l_rate, loss, train_error, val_error))
     if debug:
         _network_debug_plot(network)
     return network, metrics
