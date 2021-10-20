@@ -97,7 +97,7 @@ def _compute_loss(output_layer, expected):
         output_neuron['loss'] = error
 
     output_loss = [output_neuron['loss'] for output_neuron in output_layer]
-    softmax_loss= _softmax(output_loss)
+    softmax_loss = _softmax(output_loss) # Need softmax (all outputs > 0) before cross entropy (log).
     loss = _cross_entropy(expected, softmax_loss)
     return loss
 
