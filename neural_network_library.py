@@ -163,24 +163,34 @@ def _network_metrics(network, metrics, train_set, val_set):
     metrics['val_error'].append(val_error)
     return train_error, val_error
 
+def make_batch(iterable, batch_size=16):
+    n = len(iterable)
+    for i in range(0, n, batch_size):
+        yield iterable[i:min(i + batch_size, n)]
+
 def network_train(train_set, val_set,
                   n_hidden, hidden_af, n_outputs, output_af, n_epoch, l_rate,
-                  debug=False):
+                  batch_size=16, debug=False):
     n_inputs = len(train_set[0]) - 1 # All data but not the target (associated to the data).
     network = _initialize_network(n_inputs, n_hidden, hidden_af, n_outputs, output_af, debug)
     print('network training')
     metrics = {'train_error': [], 'val_error': []}
     for epoch in range(n_epoch):
         loss = 0.
-        for idxr, row in enumerate(train_set):
-            data, target = row[:-1], row[-1]
-            outputs = _forward_propagate(network, data)
-            expected = [0 for i in range(n_outputs)]
-            expected[target] = 1
-            dbg = True if debug and idxr == len(train_set) - 1 else False
-            loss += _compute_loss(network[-1], expected)
-            _backward_propagate_error(network, expected, dbg)
-            _update_weights(network, data, l_rate, dbg)
+        batches = list(make_batch(train_set, batch_size=batch_size))
+        for idxb, batch in enumerate(batches):
+            for idxr, row in enumerate(batch): # First backpropagate
+                data, target = row[:-1], row[-1]
+                outputs = _forward_propagate(network, data)
+                expected = [0 for i in range(n_outputs)]
+                expected[target] = 1
+                dbg = True if debug and idxb == len(batches) - 1 and idxr == len(batch) - 1 else False
+                loss += _compute_loss(network[-1], expected)
+                _backward_propagate_error(network, expected, dbg)
+            for idxr, row in enumerate(batch): # Then update model: update neurons weights.
+                data = row[:-1]
+                dbg = True if debug and idxb == len(batches) - 1 and idxr == len(batch) - 1 else False
+                _update_weights(network, data, l_rate, dbg)
         train_error, val_error = _network_metrics(network, metrics, train_set, val_set)
         print('    epoch=%d, lrate=%.3f, loss=%.3f train_error=%.3f%%, val_error=%.3f%%' % (epoch, l_rate, loss, train_error, val_error))
     if debug:

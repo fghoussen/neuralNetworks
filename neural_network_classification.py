@@ -40,7 +40,7 @@ def main():
     val_set = [[x_val[i, 0], x_val[i, 1], y_val[i]] for i in range(x_val.shape[0])]
     network, metrics = network_train(train_set, val_set,
                                      n_classes, 'sigmoid', n_classes, 'sigmoid', 1000, 0.001,
-                                     debug=True)
+                                     batch_size=4, debug=True)
     predictions, error = network_evaluate(train_set, network)
     axes[1][2].plot(metrics['train_error'], label='train error', marker='o')
     axes[1][2].plot(metrics['val_error'], label='val error', marker='o')
