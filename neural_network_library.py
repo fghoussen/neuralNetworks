@@ -111,8 +111,8 @@ def _backward_propagate_error(network, expected, debug):
         else: # Hidden layer.
             for j in range(len(layer)):
                 error, next_layer = 0., network[i + 1]
-                for neuron in next_layer: # Looping over hidden layer output.
-                    error += (neuron['weights'][j] * neuron['delta'])
+                for next_neuron in next_layer: # Looping over hidden layer output.
+                    error += (next_neuron['weights'][j] * next_neuron['delta'])
                 neuron = layer[j]
                 neuron['error'] = error
                 neuron['gradient'] = _transfer_derivative(neuron['output'], neuron['activation_fct'])
