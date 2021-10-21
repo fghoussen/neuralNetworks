@@ -107,20 +107,22 @@ def _backward_propagate_error(network, expected, debug):
         if i == len(network)-1: # Output layer.
             for neuron in layer:
                 neuron['error'] = neuron['loss'] # Initialize error with loss.
+                neuron['gradient'] = 1. # Score s such that ds/ds = 1.
         else: # Hidden layer.
             for j in range(len(layer)):
                 error, next_layer = 0., network[i + 1]
                 for neuron in next_layer: # Looping over hidden layer output.
                     error += (neuron['weights'][j] * neuron['delta'])
-                layer[j]['error'] = error
+                neuron = layer[j]
+                neuron['error'] = error
+                neuron['gradient'] = _transfer_derivative(neuron['output'], neuron['activation_fct'])
         for j in range(len(layer)):
             neuron = layer[j]
-            gradient = _transfer_derivative(neuron['output'], neuron['activation_fct'])
-            neuron['delta'] = neuron['error'] * gradient
+            neuron['delta'] = neuron['error'] * neuron['gradient']
             if debug:
                 neuron['debug_delta'].append(neuron['delta'])
                 neuron['debug_error'].append(neuron['error'])
-                neuron['debug_gradient'].append(gradient)
+                neuron['debug_gradient'].append(neuron['gradient'])
 
 def _update_weights(network, data, l_rate, debug):
     for i in range(len(network)):
