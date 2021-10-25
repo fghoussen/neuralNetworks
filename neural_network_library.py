@@ -93,7 +93,7 @@ def _softmax(vector):
 def _compute_loss(output_layer, expected):
     for j in range(len(output_layer)):
         output_neuron = output_layer[j]
-        error = expected[j] - output_neuron['output']
+        error = output_neuron['output'] - expected[j] # Caution: output - expected <=> -= alpha in GD.
         output_neuron['loss'] = error
 
     output_loss = [output_neuron['loss'] for output_neuron in output_layer]
@@ -132,8 +132,8 @@ def _update_weights(network, data, alpha, debug):
             inputs = [neuron['output'] for neuron in prev_layer]
         for neuron in network[i]:
             for j in range(len(inputs)):
-                neuron['weights'][j] += alpha * neuron['delta'] * inputs[j]
-            neuron['bias'] += alpha * neuron['delta'] # Bias (with associated input = 1.).
+                neuron['weights'][j] -= alpha * neuron['delta'] * inputs[j]
+            neuron['bias'] -= alpha * neuron['delta'] # Bias (with associated input = 1.).
             if debug:
                 neuron['debug_weights'].append(neuron['weights'])
                 neuron['debug_bias'].append(neuron['bias'])
