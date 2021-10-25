@@ -124,7 +124,7 @@ def _backward_propagate_error(network, expected, debug):
                 neuron['debug_error'].append(neuron['error'])
                 neuron['debug_gradient'].append(neuron['gradient'])
 
-def _update_weights(network, data, l_rate, debug):
+def _update_weights(network, data, alpha, debug):
     for i in range(len(network)):
         inputs = data
         if i != 0:
@@ -132,8 +132,8 @@ def _update_weights(network, data, l_rate, debug):
             inputs = [neuron['output'] for neuron in prev_layer]
         for neuron in network[i]:
             for j in range(len(inputs)):
-                neuron['weights'][j] += l_rate * neuron['delta'] * inputs[j]
-            neuron['bias'] += l_rate * neuron['delta'] # Bias (with associated input = 1.).
+                neuron['weights'][j] += alpha * neuron['delta'] * inputs[j]
+            neuron['bias'] += alpha * neuron['delta'] # Bias (with associated input = 1.).
             if debug:
                 neuron['debug_weights'].append(neuron['weights'])
                 neuron['debug_bias'].append(neuron['bias'])
@@ -171,7 +171,7 @@ def make_batch(iterable, batch_size=16):
         yield iterable[i:min(i + batch_size, n)]
 
 def network_train(train_set, val_set,
-                  n_hidden, hidden_af, n_outputs, output_af, n_epoch, l_rate,
+                  n_hidden, hidden_af, n_outputs, output_af, n_epoch, alpha,
                   batch_size=16, debug=False):
     n_inputs = len(train_set[0]) - 1 # All data but not the target (associated to the data).
     network = _initialize_network(n_inputs, n_hidden, hidden_af, n_outputs, output_af, debug)
@@ -192,9 +192,9 @@ def network_train(train_set, val_set,
             for idxr, row in enumerate(batch): # Then update model: update neurons weights.
                 data = row[:-1]
                 dbg = True if debug and idxb == len(batches) - 1 and idxr == len(batch) - 1 else False
-                _update_weights(network, data, l_rate, dbg)
+                _update_weights(network, data, alpha, dbg)
         train_error, val_error = _network_metrics(network, metrics, train_set, val_set)
-        print('    epoch=%d, lrate=%.3f, loss=%.3f train_error=%.3f%%, val_error=%.3f%%' % (epoch, l_rate, loss, train_error, val_error))
+        print('    epoch=%d, alpha=%.3f, loss=%.3f, train_error=%.3f%%, val_error=%.3f%%' % (epoch, alpha, loss, train_error, val_error))
     if debug:
         _network_debug_plot(network)
     return network, metrics
