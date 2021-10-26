@@ -15,9 +15,9 @@ def _initialize_network(n_inputs, n_hidden, hidden_af, n_outputs, output_af, deb
         neuron['activation_fct'] = hidden_af
     network.append(hidden_layer)
     output_layer = [{'weights':[random() for i in range(n_hidden)]} for i in range(n_outputs)]
-    for neuron in output_layer:
-        neuron['bias'] = random()
-        neuron['activation_fct'] = output_af
+    for output_neuron in output_layer:
+        output_neuron['bias'] = random()
+        output_neuron['activation_fct'] = output_af
     network.append(output_layer)
     print('network initialised')
     for idxl, layer in enumerate(network):
@@ -32,6 +32,8 @@ def _initialize_network(n_inputs, n_hidden, hidden_af, n_outputs, output_af, deb
                 neuron['debug_gradient'] = []
                 neuron['debug_weights'] = []
                 neuron['debug_bias'] = []
+        for output_neuron in output_layer:
+            output_neuron['debug_loss'] = []
     return network
 
 def _neuron_activate(weights, bias, inputs):
@@ -90,11 +92,13 @@ def _softmax(vector):
     e = np.exp(vector)
     return e / e.sum()
 
-def _compute_loss(output_layer, expected):
+def _compute_loss(output_layer, expected, dbg):
     for j in range(len(output_layer)):
         output_neuron = output_layer[j]
         error = output_neuron['output'] - expected[j] # error = output - expected <=> GD with minus (-= alpha * grad).
         output_neuron['loss'] = error
+        if dbg:
+            output_neuron['debug_loss'].append(output_neuron['loss'])
 
     output_loss = [output_neuron['loss'] for output_neuron in output_layer]
     softmax_loss = _softmax(output_loss) # Need softmax (all outputs > 0) before cross entropy (log).
@@ -157,6 +161,13 @@ def _network_debug_plot(network):
                 axes[idxn][idxl].plot(debug_weights, label=('weights %s' % idxw))
             axes[idxn][idxl].plot(neuron['debug_bias'], label='bias')
             axes[idxn][idxl].legend()
+    output_layer = network[-1]
+    _, axes = plt.subplots(len(output_layer), 1)
+    plt.suptitle('neural network debug_loss')
+    for idxn, output_neuron in enumerate(output_layer):
+        axes[idxn].set_title('output layer, neuron %s' % idxn)
+        axes[idxn].plot(output_neuron['debug_loss'], label='loss')
+        axes[idxn].legend()
 
 def _network_metrics(network, metrics, train_set, val_set):
     _, train_error = network_evaluate(train_set, network)
@@ -187,7 +198,7 @@ def network_train(train_set, val_set,
                 expected = [0 for i in range(n_outputs)]
                 expected[target] = 1
                 dbg = True if debug and idxb == len(batches) - 1 and idxr == len(batch) - 1 else False
-                loss += _compute_loss(network[-1], expected)
+                loss += _compute_loss(network[-1], expected, dbg)
                 _backward_propagate_error(network, expected, dbg)
             for idxr, row in enumerate(batch): # Then update model: update neurons weights.
                 data = row[:-1]
