@@ -93,7 +93,7 @@ def _softmax(vector):
 def _compute_loss(output_layer, expected):
     for j in range(len(output_layer)):
         output_neuron = output_layer[j]
-        error = output_neuron['output'] - expected[j] # Caution: output - expected <=> -= alpha in GD.
+        error = output_neuron['output'] - expected[j] # error = output - expected <=> GD with minus (-= alpha * grad).
         output_neuron['loss'] = error
 
     output_loss = [output_neuron['loss'] for output_neuron in output_layer]
