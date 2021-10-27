@@ -10,7 +10,7 @@ def _initialize_network(n_inputs, n_hidden, hidden_af, n_outputs, output_af, bet
     assert n_hidden >= n_outputs, 'n_hidden < n_outputs: may result in information loss.'
     adam = beta1 is not None and beta2 is not None # Adam or SGD
     network = list()
-    hidden_layer = [{'weights':[random() for i in range(n_inputs)]} for i in range(n_hidden)]
+    hidden_layer = [{'weights': [random() for i in range(n_inputs)]} for i in range(n_hidden)]
     for neuron in hidden_layer:
         neuron['bias'] = random()
         neuron['activation_fct'] = hidden_af
@@ -18,7 +18,7 @@ def _initialize_network(n_inputs, n_hidden, hidden_af, n_outputs, output_af, bet
             neuron['mu'] = 0. # Gradient mean.
             neuron['nu'] = 0. # Gradient variance.
     network.append(hidden_layer)
-    output_layer = [{'weights':[random() for i in range(n_hidden)]} for i in range(n_outputs)]
+    output_layer = [{'weights': [random() for i in range(n_hidden)]} for i in range(n_outputs)]
     for output_neuron in output_layer:
         output_neuron['bias'] = random()
         output_neuron['activation_fct'] = output_af
@@ -26,11 +26,20 @@ def _initialize_network(n_inputs, n_hidden, hidden_af, n_outputs, output_af, bet
             output_neuron['mu'] = 0. # Gradient mean.
             output_neuron['nu'] = 0. # Gradient variance.
     network.append(output_layer)
+    _initialize_network_debug(network, debug)
+    _print_network(network)
+    return network
+
+def _print_network(network):
     print('network initialised')
     for idxl, layer in enumerate(network):
         print('    layer %s' % idxl)
         for idxn, neuron in enumerate(layer):
-            print('        neuron %s' % idxn, neuron)
+            print('        neuron %s:' % idxn)
+            for key in neuron:
+                print('            %s:' % key, neuron[key])
+
+def _initialize_network_debug(network, debug):
     if debug:
         for layer in network:
             for neuron in layer:
@@ -41,7 +50,6 @@ def _initialize_network(n_inputs, n_hidden, hidden_af, n_outputs, output_af, bet
                 neuron['debug_bias'] = []
         for output_neuron in output_layer:
             output_neuron['debug_loss'] = []
-    return network
 
 def _neuron_activate(weights, bias, inputs):
     activation = bias # Bias (with associated input = 1.).
