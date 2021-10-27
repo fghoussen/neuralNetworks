@@ -6,18 +6,25 @@ from math import exp, log2
 import matplotlib.pyplot as plt
 import numpy as np
 
-def _initialize_network(n_inputs, n_hidden, hidden_af, n_outputs, output_af, debug):
+def _initialize_network(n_inputs, n_hidden, hidden_af, n_outputs, output_af, beta1, beta2, debug):
     assert n_hidden >= n_outputs, 'n_hidden < n_outputs: may result in information loss.'
+    adam = beta1 is not None and beta2 is not None # Adam or SGD
     network = list()
     hidden_layer = [{'weights':[random() for i in range(n_inputs)]} for i in range(n_hidden)]
     for neuron in hidden_layer:
         neuron['bias'] = random()
         neuron['activation_fct'] = hidden_af
+        if adam:
+            neuron['mu'] = 0. # Gradient mean.
+            neuron['nu'] = 0. # Gradient variance.
     network.append(hidden_layer)
     output_layer = [{'weights':[random() for i in range(n_hidden)]} for i in range(n_outputs)]
     for output_neuron in output_layer:
         output_neuron['bias'] = random()
         output_neuron['activation_fct'] = output_af
+        if adam:
+            output_neuron['mu'] = 0. # Gradient mean.
+            output_neuron['nu'] = 0. # Gradient variance.
     network.append(output_layer)
     print('network initialised')
     for idxl, layer in enumerate(network):
@@ -105,7 +112,22 @@ def _compute_loss(output_layer, expected, dbg):
     loss = _cross_entropy(expected, softmax_loss)
     return loss
 
-def _backward_propagate_error(network, expected, debug):
+def _adam(neuron, beta1, beta2, time):
+    adam = beta1 is not None and beta2 is not None # Adam or SGD
+    if not adam:
+        return # Gradient does not need to be modified.
+    grad, mu, nu = neuron['gradient'], neuron['mu'], neuron['nu']
+    mu = beta1 * mu + (1. - beta1) * grad    # Gradient mean.
+    nu = beta2 * nu + (1. - beta2) * grad**2 # Gradient variance.
+    neuron['mu'] = mu # Modify gradient mean.
+    neuron['nu'] = nu # Modify gradient variance.
+    mu_hat = mu / (1. - beta1**(time+1)) # Gradient mean correction.
+    nu_hat = nu / (1. - beta2**(time+1)) # Gradient variance correction.
+    time += 1 # Update time for Adam gradient descent.
+    eps = 1e-8 # Make sure we never divide by zero.
+    neuron['gradient'] = mu_hat / (np.sqrt(nu_hat) + eps) # Modify gradient.
+
+def _backward_propagate_error(network, beta1, beta2, time, debug):
     for i in reversed(range(len(network))): # Looping backward from output to hidden layer.
         layer = network[i]
         if i == len(network)-1: # Output layer.
@@ -122,6 +144,7 @@ def _backward_propagate_error(network, expected, debug):
                 neuron['gradient'] = _transfer_derivative(neuron['output'], neuron['activation_fct'])
         for j in range(len(layer)):
             neuron = layer[j]
+            _adam(neuron, beta1, beta2, time)
             neuron['delta'] = neuron['error'] * neuron['gradient']
             if debug:
                 neuron['debug_delta'].append(neuron['delta'])
@@ -182,12 +205,14 @@ def make_batch(iterable, batch_size=16):
         yield iterable[i:min(i + batch_size, n)]
 
 def network_train(train_set, val_set,
-                  n_hidden, hidden_af, n_outputs, output_af, n_epoch, alpha,
+                  n_hidden, hidden_af, n_outputs, output_af, n_epoch,
+                  alpha, beta1, beta2, # If beta1 = beta2 = None, we get SGD instead of Adam.
                   batch_size=16, debug=False):
     n_inputs = len(train_set[0]) - 1 # All data but not the target (associated to the data).
-    network = _initialize_network(n_inputs, n_hidden, hidden_af, n_outputs, output_af, debug)
+    network = _initialize_network(n_inputs, n_hidden, hidden_af, n_outputs, output_af, beta1, beta2, debug)
     print('network training')
     metrics = {'train_error': [], 'val_error': []}
+    time = 1
     for epoch in range(n_epoch):
         loss = 0.
         batches = list(make_batch(train_set, batch_size=batch_size))
@@ -199,7 +224,7 @@ def network_train(train_set, val_set,
                 expected[target] = 1
                 dbg = True if debug and idxb == len(batches) - 1 and idxr == len(batch) - 1 else False
                 loss += _compute_loss(network[-1], expected, dbg)
-                _backward_propagate_error(network, expected, dbg)
+                _backward_propagate_error(network, beta1, beta2, time, dbg)
             for idxr, row in enumerate(batch): # Then update model: update neurons weights.
                 data = row[:-1]
                 dbg = True if debug and idxb == len(batches) - 1 and idxr == len(batch) - 1 else False
