@@ -15,7 +15,7 @@ def main():
     n_classes = 4
     std_classes = 1.5 # Spread classes around centers to make data less/more predictable/noisy.
     x, y = make_blobs(n_samples=1000, centers=n_classes, random_state=0, cluster_std=std_classes)
-    _, axes = plt.subplots(3, 5)
+    _, axes = plt.subplots(3, 6)
     plt.suptitle('neural network results')
     axes[0][0].scatter(x[:, 0], x[:, 1], c=y)
     axes[0][0].set_title('data')
@@ -36,34 +36,39 @@ def main():
     x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.25)
 
     # Train and test neural network.
-    alpha = 0.001
-    for idxa, beta1, beta2, batch_size in zip([1, 2], [None, 0.9], [None, 0.999], [1, 1]):
-        # Train neural network.
-        train_set = [[x_train[i, 0], x_train[i, 1], y_train[i]] for i in range(x_train.shape[0])]
-        val_set = [[x_val[i, 0], x_val[i, 1], y_val[i]] for i in range(x_val.shape[0])]
-        network, metrics = network_train(train_set, val_set,
-                                         n_classes, 'sigmoid', n_classes, 'sigmoid', 200,
-                                         alpha, beta1, beta2,
-                                         batch_size=batch_size, debug=False)
-        predictions, error = network_evaluate(train_set, network)
-        axes[idxa][2].plot(metrics['train_error'], label='train error', marker='o')
-        axes[idxa][2].plot(metrics['val_error'], label='val error', marker='o')
-        axes[idxa][2].set_xlabel('epoch')
-        method = 'Adam' if beta1 is not None and beta2 is not None else 'SGD' # Adam or SGD
-        axes[idxa][2].set_title('learning curve %s - error (%%)' % method)
-        axes[idxa][2].legend()
-        axes[idxa][3].scatter([ts[0] for ts in train_set], [ts[1] for ts in train_set], c=predictions)
-        axes[idxa][3].set_title('train %s - error %.2f %%' % (method, error))
-        axes[idxa][3].set_xlim(xlim_scaled), axes[1][3].set_ylim(ylim_scaled)
+    n_epoch, alpha = 200, 0.001
+    for idxl, beta1, beta2, batch_size in zip([1, 2], [None, 0.9], [None, 0.999], [1, 1]):
+        for idxc, activation_function in zip([0, 3], ['sigmoid', 'relu']):
+            # Train neural network.
+            train_set = [[x_train[i, 0], x_train[i, 1], y_train[i]] for i in range(x_train.shape[0])]
+            val_set = [[x_val[i, 0], x_val[i, 1], y_val[i]] for i in range(x_val.shape[0])]
+            network, metrics = network_train(train_set, val_set,
+                                             n_classes, activation_function, n_classes, activation_function,
+                                             n_epoch, alpha, beta1, beta2,
+                                             batch_size=batch_size, debug=False)
+            predictions, error = network_evaluate(train_set, network)
+            if idxc == 0:
+                method = 'Adam' if beta1 is not None and beta2 is not None else 'SGD' # Adam or SGD
+                axes[idxl][idxc+0].text(-0.5, 0.5, method, transform=axes[idxl][idxc+0].transAxes)
+            axes[idxl][idxc+0].plot(metrics['train_error'], label='train error', marker='o')
+            axes[idxl][idxc+0].plot(metrics['val_error'], label='val error', marker='o')
+            axes[idxl][idxc+0].set_xlabel('epoch')
+            axes[idxl][idxc+0].set_ylabel('error (%)')
+            axes[idxl][idxc+0].set_title('learning curve %s' % activation_function)
+            axes[idxl][idxc+0].legend()
+            axes[idxl][idxc+1].scatter([ts[0] for ts in train_set], [ts[1] for ts in train_set], c=predictions)
+            axes[idxl][idxc+1].set_title('train %s - error %.2f %%' % (activation_function, error))
+            axes[idxl][idxc+1].set_xlim(xlim_scaled), axes[idxl][idxc+1].set_ylim(ylim_scaled)
 
-        # Test neural network.
-        test_set = [[x_test[i, 0], x_test[i, 1], y_test[i]] for i in range(x_test.shape[0])]
-        predictions, error = network_evaluate(test_set, network)
-        axes[idxa][4].scatter([ts[0] for ts in test_set], [ts[1] for ts in test_set], c=predictions)
-        axes[idxa][4].set_title('test %s - error %.2f %%' % (method, error))
-        axes[idxa][4].set_xlim(xlim_scaled), axes[1][4].set_ylim(ylim_scaled)
+            # Test neural network.
+            test_set = [[x_test[i, 0], x_test[i, 1], y_test[i]] for i in range(x_test.shape[0])]
+            predictions, error = network_evaluate(test_set, network)
+            axes[idxl][idxc+2].scatter([ts[0] for ts in test_set], [ts[1] for ts in test_set], c=predictions)
+            axes[idxl][idxc+2].set_title('test %s - error %.2f %%' % (activation_function, error))
+            axes[idxl][idxc+2].set_xlim(xlim_scaled), axes[idxl][idxc+2].set_ylim(ylim_scaled)
 
     # Show Results.
+    plt.subplots_adjust(left=0.1, bottom=0.05, right=0.9, top=0.9, wspace=0.3, hspace=0.3)
     plt.show()
 
 if __name__ == '__main__':

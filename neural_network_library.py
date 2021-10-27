@@ -230,7 +230,7 @@ def network_train(train_set, val_set,
                 dbg = True if debug and idxb == len(batches) - 1 and idxr == len(batch) - 1 else False
                 _update_weights(network, data, alpha, dbg)
         train_error, val_error = _network_metrics(network, metrics, train_set, val_set)
-        print('    epoch=%d, alpha=%.3f, loss=%.3f, train_error=%.3f%%, val_error=%.3f%%' % (epoch, alpha, loss, train_error, val_error))
+        print('    epoch=%03d, alpha=%.3f, loss=%.3f, train_error=%.3f%%, val_error=%.3f%%' % (epoch, alpha, loss, train_error, val_error))
     if debug:
         _network_debug_plot(network)
     return network, metrics
