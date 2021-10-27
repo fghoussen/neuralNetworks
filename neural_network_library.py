@@ -131,7 +131,6 @@ def _adam(neuron, beta1, beta2, time):
     neuron['nu'] = nu # Modify gradient variance.
     mu_hat = mu / (1. - beta1**(time+1)) # Gradient mean correction.
     nu_hat = nu / (1. - beta2**(time+1)) # Gradient variance correction.
-    time += 1 # Update time for Adam gradient descent.
     eps = 1e-8 # Make sure we never divide by zero.
     neuron['gradient'] = mu_hat / (np.sqrt(nu_hat) + eps) # Modify gradient.
 
@@ -237,6 +236,7 @@ def network_train(train_set, val_set,
                 data = row[:-1]
                 dbg = True if debug and idxb == len(batches) - 1 and idxr == len(batch) - 1 else False
                 _update_weights(network, data, alpha, dbg)
+            time += 1 # Update time for Adam gradient descent after each batch.
         train_error, val_error = _network_metrics(network, metrics, train_set, val_set)
         print('    epoch=%03d, alpha=%.3f, loss=%.3f, train_error=%.3f%%, val_error=%.3f%%' % (epoch, alpha, loss, train_error, val_error))
     if debug:
