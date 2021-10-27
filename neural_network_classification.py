@@ -37,7 +37,7 @@ def main():
 
     # Train and test neural network.
     n_epoch, alpha = 200, 0.001
-    for idxl, beta1, beta2, batch_size in zip([1, 2], [None, 0.9], [None, 0.999], [1, 1]):
+    for idxl, beta1, beta2, batch_size in zip([1, 2], [None, 0.9], [None, 0.999], [8, 8]):
         for idxc, activation_function in zip([0, 3], ['sigmoid', 'relu']):
             # Train neural network.
             train_set = [[x_train[i, 0], x_train[i, 1], y_train[i]] for i in range(x_train.shape[0])]

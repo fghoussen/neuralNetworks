@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: UTF-8 -*-
 
-from random import random
+from random import random, shuffle
 from math import exp, log2
 import matplotlib.pyplot as plt
 import numpy as np
@@ -221,6 +221,7 @@ def network_train(train_set, val_set,
     metrics = {'train_error': [], 'val_error': []}
     time = 1
     for epoch in range(n_epoch):
+        shuffle(train_set) # In-place dataset shuffle when new epoch begins: more relevant batches / GD.
         loss = 0.
         batches = list(make_batch(train_set, batch_size=batch_size))
         for idxb, batch in enumerate(batches):
