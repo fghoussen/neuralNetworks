@@ -206,7 +206,7 @@ def _network_metrics(network, metrics, train_set, val_set):
     metrics['val_error'].append(val_error)
     return train_error, val_error
 
-def make_batch(iterable, batch_size=16):
+def _make_batch(iterable, batch_size=16):
     n = len(iterable)
     for i in range(0, n, batch_size):
         yield iterable[i:min(i + batch_size, n)]
@@ -223,7 +223,7 @@ def network_train(train_set, val_set,
     for epoch in range(n_epoch):
         shuffle(train_set) # In-place dataset shuffle when new epoch begins: more relevant batches / GD.
         loss = 0.
-        batches = list(make_batch(train_set, batch_size=batch_size))
+        batches = list(_make_batch(train_set, batch_size=batch_size))
         for idxb, batch in enumerate(batches):
             for idxr, row in enumerate(batch): # First backpropagate
                 data, target = row[:-1], row[-1]
