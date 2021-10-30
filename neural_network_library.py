@@ -116,8 +116,8 @@ def _softmax(vector):
     e = np.exp(vector)
     return e / e.sum()
 
-def _compute_loss(output_layer, classification, target, dbg):
-    expected = None
+def _compute_loss(network, classification, target, dbg):
+    output_layer, expected = network[-1], None
     if classification:
         expected = [0 for i in range(len(output_layer))]
         expected[target] = 1. # Always between 0 and 1: no need to scale.
@@ -258,7 +258,7 @@ def network_train(classification, train_set, val_set,
                 data, target = row[:-1], row[-1]
                 _forward_propagate(network, data)
                 dbg = True if debug and idxb == len(batches) - 1 and idxr == len(batch) - 1 else False
-                loss += _compute_loss(network[-1], classification, target, dbg)
+                loss += _compute_loss(network, classification, target, dbg)
                 _backward_propagate_error(network, beta1, beta2, time, dbg)
             for idxr, row in enumerate(batch): # Then update model: update neurons weights.
                 data = row[:-1]
