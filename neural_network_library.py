@@ -1,10 +1,15 @@
 #!/usr/bin/python
 # -*- coding: UTF-8 -*-
 
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from random import random, shuffle
 from math import exp, log2
 import matplotlib.pyplot as plt
 import numpy as np
+
+SCALER_PIPELINE_X = None # Scale data: different scales across input variables increase problem difficulty.
+SCALER_PIPELINE_Y = None # Scale target variable for regression.
 
 def _initialize_network(n_inputs, n_hidden, hidden_af, n_outputs, output_af, beta1, beta2, debug):
     assert n_hidden >= n_outputs, 'n_hidden < n_outputs: may result in information loss.'
@@ -90,7 +95,9 @@ def _transfer_derivative(activation, activation_fct):
         assert True, 'Error: unknown transfer fonction.'
 
 def _forward_propagate(network, data):
-    inputs = data
+    inputs = np.array(data)
+    if SCALER_PIPELINE_X is not None:
+        inputs = SCALER_PIPELINE_X.transform(inputs.reshape(1, -1)).reshape(len(data), )
     for layer in network:
         new_inputs = []
         for neuron in layer:
@@ -98,6 +105,8 @@ def _forward_propagate(network, data):
             neuron['output'] = _transfer(activation, neuron['activation_fct'])
             new_inputs.append(neuron['output'])
         inputs = new_inputs
+    if SCALER_PIPELINE_Y is not None:
+        inputs = SCALER_PIPELINE_Y.inverse_transform(inputs.reshape(1, -1))
     return inputs
 
 def _cross_entropy(expected, predicted, eps=1e-15):
@@ -107,14 +116,19 @@ def _softmax(vector):
     e = np.exp(vector)
     return e / e.sum()
 
-def _compute_loss(output_layer, expected, dbg):
+def _compute_loss(output_layer, classification, target, dbg):
+    expected = None
+    if classification:
+        expected = [0 for i in range(len(output_layer))]
+        expected[target] = 1. # Always between 0 and 1: no need to scale.
+    else: # Regression.
+        expected = [SCALER_PIPELINE_Y.transform(target)]
     for j in range(len(output_layer)):
         output_neuron = output_layer[j]
-        error = output_neuron['output'] - expected[j] # error = output - expected <=> GD with minus (-= alpha * grad).
+        error = output_neuron['output'] - expected[j] # Error = output - expected <=> GD with minus (-= alpha * grad).
         output_neuron['loss'] = error
         if dbg:
             output_neuron['debug_loss'].append(output_neuron['loss'])
-
     output_loss = [output_neuron['loss'] for output_neuron in output_layer]
     softmax_loss = _softmax(output_loss) # Need softmax (all outputs > 0) before cross entropy (log).
     loss = _cross_entropy(expected, softmax_loss)
@@ -211,7 +225,22 @@ def _make_batch(iterable, batch_size=16):
     for i in range(0, n, batch_size):
         yield iterable[i:min(i + batch_size, n)]
 
-def network_train(train_set, val_set,
+def network_preprocess_data(scalers, x, y, classification):
+    global SCALER_PIPELINE_X, SCALER_PIPELINE_Y
+    SCALER_PIPELINE_X, SCALER_PIPELINE_Y = None, None
+    steps = []
+    for scaler in scalers.split('_'):
+        if 'minmax' == scaler:
+            steps.append(('minmax', MinMaxScaler()))
+        if 'std' == scaler:
+            steps.append(('std', StandardScaler()))
+    SCALER_PIPELINE_X = Pipeline(steps=steps)
+    SCALER_PIPELINE_X.fit(x.reshape(-1, x.shape[1]))
+    if not classification: # Regression.
+        SCALER_PIPELINE_Y = Pipeline(steps=steps)
+        SCALER_PIPELINE_Y.fit(y.reshape(-1, 1))
+
+def network_train(classification, train_set, val_set,
                   n_hidden, hidden_af, n_outputs, output_af, n_epoch,
                   alpha, beta1, beta2, # If beta1 = beta2 = None, we get SGD instead of Adam.
                   batch_size=16, debug=False):
@@ -227,11 +256,9 @@ def network_train(train_set, val_set,
         for idxb, batch in enumerate(batches):
             for idxr, row in enumerate(batch): # First backpropagate
                 data, target = row[:-1], row[-1]
-                outputs = _forward_propagate(network, data)
-                expected = [0 for i in range(n_outputs)]
-                expected[target] = 1
+                _forward_propagate(network, data)
                 dbg = True if debug and idxb == len(batches) - 1 and idxr == len(batch) - 1 else False
-                loss += _compute_loss(network[-1], expected, dbg)
+                loss += _compute_loss(network[-1], classification, target, dbg)
                 _backward_propagate_error(network, beta1, beta2, time, dbg)
             for idxr, row in enumerate(batch): # Then update model: update neurons weights.
                 data = row[:-1]

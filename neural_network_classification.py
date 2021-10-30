@@ -2,9 +2,8 @@
 # -*- coding: UTF-8 -*-
 
 from sklearn.datasets import make_blobs
-from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
-from neural_network_library import network_train, network_predict, network_evaluate
+import neural_network_library as nnl
 import matplotlib.pyplot as plt
 
 from random import seed
@@ -22,17 +21,17 @@ def main():
     xlim, ylim = axes[0][0].get_xlim(), axes[0][0].get_ylim()
 
     # Scale data to reduce weights.
-    std_scale = preprocessing.StandardScaler().fit(x)
-    x_scaled = std_scale.transform(x)
+    classification = True
+    nnl.network_preprocess_data('minmax_std', x, y, classification)
+    x_scaled = nnl.SCALER_PIPELINE_X.transform(x)
     axes[0][1].scatter(x_scaled[:, 0], x_scaled[:, 1], c=y)
     axes[0][1].set_title('scaled data (zoom unchanged)')
     axes[0][1].set_xlim(xlim), axes[0][1].set_ylim(ylim)
     axes[0][2].scatter(x_scaled[:, 0], x_scaled[:, 1], c=y)
     axes[0][2].set_title('scaled data (zoom fit)')
-    xlim_scaled, ylim_scaled = axes[0][2].get_xlim(), axes[0][2].get_ylim()
 
     # Split data set into training set, validation set and testing set.
-    x_train, x_test, y_train, y_test = train_test_split(x_scaled, y, test_size=0.25)
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.25)
     x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.25)
 
     # Train and test neural network.
@@ -42,11 +41,11 @@ def main():
             # Train neural network.
             train_set = [[x_train[i, 0], x_train[i, 1], y_train[i]] for i in range(x_train.shape[0])]
             val_set = [[x_val[i, 0], x_val[i, 1], y_val[i]] for i in range(x_val.shape[0])]
-            network, metrics = network_train(train_set, val_set,
-                                             n_classes, activation_function, n_classes, activation_function,
-                                             n_epoch, alpha, beta1, beta2,
-                                             batch_size=batch_size, debug=False)
-            predictions, error = network_evaluate(train_set, network)
+            network, metrics = nnl.network_train(classification, train_set, val_set,
+                                                 n_classes, activation_function, n_classes, activation_function,
+                                                 n_epoch, alpha, beta1, beta2,
+                                                 batch_size=batch_size, debug=False)
+            predictions, error = nnl.network_evaluate(train_set, network)
             if idxc == 0:
                 method = 'Adam' if beta1 is not None and beta2 is not None else 'SGD' # Adam or SGD
                 axes[idxl][idxc+0].text(-0.5, 0.5, method, transform=axes[idxl][idxc+0].transAxes)
@@ -58,14 +57,12 @@ def main():
             axes[idxl][idxc+0].legend()
             axes[idxl][idxc+1].scatter([ts[0] for ts in train_set], [ts[1] for ts in train_set], c=predictions)
             axes[idxl][idxc+1].set_title('train %s - error %.2f %%' % (activation_function, error))
-            axes[idxl][idxc+1].set_xlim(xlim_scaled), axes[idxl][idxc+1].set_ylim(ylim_scaled)
 
             # Test neural network.
             test_set = [[x_test[i, 0], x_test[i, 1], y_test[i]] for i in range(x_test.shape[0])]
-            predictions, error = network_evaluate(test_set, network)
+            predictions, error = nnl.network_evaluate(test_set, network)
             axes[idxl][idxc+2].scatter([ts[0] for ts in test_set], [ts[1] for ts in test_set], c=predictions)
             axes[idxl][idxc+2].set_title('test %s - error %.2f %%' % (activation_function, error))
-            axes[idxl][idxc+2].set_xlim(xlim_scaled), axes[idxl][idxc+2].set_ylim(ylim_scaled)
 
     # Show Results.
     plt.subplots_adjust(left=0.1, bottom=0.05, right=0.9, top=0.9, wspace=0.3, hspace=0.3)
