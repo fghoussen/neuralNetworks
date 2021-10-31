@@ -66,7 +66,7 @@ def _transfer_sigmoid(activation):
     return 1.0 / (1.0 + exp(-activation))
 
 def _transfer_derivative_sigmoid(output):
-    return output * (1.0 - output)
+    return output * (1.0 - output) # https://towardsdatascience.com/derivative-of-the-sigmoid-function-536880cf918e.
 
 def _transfer_relu(activation):
     if activation > 0.:
