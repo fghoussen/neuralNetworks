@@ -23,7 +23,7 @@ def main():
     # Scale data to reduce weights.
     classification = True
     nnl.network_preprocess_data('minmax_std', x, y, classification)
-    x_scaled = nnl.SCALER_PIPELINE_X.transform(x)
+    x_scaled = nnl.SCALER_PIPELINE_X.transform(x).reshape(x.shape)
     axes[0][1].scatter(x_scaled[:, 0], x_scaled[:, 1], c=y)
     axes[0][1].set_title('scaled data (zoom unchanged)')
     axes[0][1].set_xlim(xlim), axes[0][1].set_ylim(ylim)
