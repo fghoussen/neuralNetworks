@@ -24,6 +24,7 @@ def _initialize_network(n_inputs, n_hidden, hidden_af, n_outputs, output_af,
             neuron['mu'] = 0. # Gradient mean.
             neuron['nu'] = 0. # Gradient variance.
     network.append(hidden_layer)
+
     if not classification: # Regression: only one linear output allowed.
         assert n_outputs == 1, 'Regression: only one output allowed.'
         assert output_af == 'linear', 'Regression: only linear output allowed.'
@@ -38,8 +39,10 @@ def _initialize_network(n_inputs, n_hidden, hidden_af, n_outputs, output_af,
             output_neuron['expected'] = np.array([]) # Expected values to compute loss.
             output_neuron['predicted'] = np.array([]) # Predicted values to compute loss.
     network.append(output_layer)
+
     _initialize_network_debug(network, debug)
     _print_network(network)
+
     return network
 
 def _print_network(network):
@@ -115,6 +118,7 @@ def _forward_propagate(network, data):
     inputs = np.array(data)
     if SCALER_PIPELINE_X is not None:
         inputs = SCALER_PIPELINE_X.transform(inputs.reshape(1, -1)).reshape(len(data), )
+
     for layer in network:
         new_inputs = []
         for neuron in layer:
@@ -122,9 +126,11 @@ def _forward_propagate(network, data):
             neuron['output'] = _transfer(activation, neuron['activation_fct'])
             new_inputs.append(neuron['output'])
         inputs = new_inputs
+
     if SCALER_PIPELINE_Y is not None:
         assert len(inputs) == 1, 'Regression: only one output allowed.'
         inputs = SCALER_PIPELINE_Y.inverse_transform(np.array(inputs).reshape(1, 1)).reshape(1, )
+
     return inputs
 
 def _cross_entropy(expected, predicted, eps=1e-15):
@@ -148,12 +154,14 @@ def _compute_loss(network, classification, target, dbg):
         expected[target] = 1. # One-hot encoding is always between 0 and 1: no need to scale.
     else: # Regression.
         expected = SCALER_PIPELINE_Y.transform(np.array([target]).reshape(1, 1)).reshape(1, ) # Target (not scaled) -> expected (scaled).
+
     for j in range(len(output_layer)):
         output_neuron = output_layer[j]
         error = output_neuron['output'] - expected[j] # Error = output - expected <=> GD with minus (-= alpha * grad).
         output_neuron['loss'] = error
         if dbg:
             output_neuron['debug_loss'].append(output_neuron['loss'])
+
     loss = None # Global loss is deduced from loss of each output layer neuron.
     if classification:
         output_loss = [output_neuron['loss'] for output_neuron in output_layer]
@@ -165,6 +173,7 @@ def _compute_loss(network, classification, target, dbg):
         output_neuron['expected'] = np.append(output_neuron['expected'], expected)
         output_neuron['predicted'] = np.append(output_neuron['predicted'], output_neuron['output'])
         loss = _mean_squared_error(output_neuron['expected'], output_neuron['predicted'])
+
     return loss
 
 def _adam(neuron, beta1, beta2, time):
@@ -196,6 +205,7 @@ def _backward_propagate_error(network, beta1, beta2, time, debug):
                 neuron = layer[j]
                 neuron['error'] = error
                 neuron['gradient'] = _transfer_derivative(neuron['output'], neuron['activation_fct'])
+
         for j in range(len(layer)):
             neuron = layer[j]
             _adam(neuron, beta1, beta2, time)
@@ -211,6 +221,7 @@ def _update_weights(network, data, alpha, debug):
         if i != 0:
             prev_layer = network[i - 1] # Looping over hidden layer input.
             inputs = [neuron['output'] for neuron in prev_layer]
+
         for neuron in network[i]:
             for j in range(len(inputs)):
                 neuron['weights'][j] -= alpha * neuron['delta'] * inputs[j]
@@ -228,6 +239,7 @@ def _network_debug_plot(network):
                 axes[idxn][idxl].set_title('layer %s, neuron %s' % (idxl, idxn))
                 axes[idxn][idxl].plot(neuron[data], label=data)
                 axes[idxn][idxl].legend()
+
     _, axes = plt.subplots(max([len(layer) for layer in network]), len(network))
     plt.suptitle('neural network debug_weights/debug_bias')
     for idxl, layer in enumerate(network):
@@ -238,6 +250,7 @@ def _network_debug_plot(network):
                 axes[idxn][idxl].plot(debug_weights, label=('weights %s' % idxw))
             axes[idxn][idxl].plot(neuron['debug_bias'], label='bias')
             axes[idxn][idxl].legend()
+
     output_layer = network[-1]
     _, axes = plt.subplots(len(output_layer), 1)
     plt.suptitle('neural network debug_loss')
@@ -270,14 +283,15 @@ def _network_predict(network, row, classification):
     return predicted
 
 def network_preprocess_data(scalers, x, y, classification):
-    global SCALER_PIPELINE_X, SCALER_PIPELINE_Y
-    SCALER_PIPELINE_X, SCALER_PIPELINE_Y = None, None
     steps = []
     for scaler in scalers.split('_'):
         if 'minmax' == scaler:
             steps.append(('minmax', MinMaxScaler()))
         if 'std' == scaler:
             steps.append(('std', StandardScaler()))
+
+    global SCALER_PIPELINE_X, SCALER_PIPELINE_Y
+    SCALER_PIPELINE_X, SCALER_PIPELINE_Y = None, None
     SCALER_PIPELINE_X = Pipeline(steps=steps)
     SCALER_PIPELINE_X.fit(x.reshape(x.shape[0], x.shape[1]))
     if not classification: # Regression (classification: one-hot encoding => no need to scale).
@@ -295,6 +309,7 @@ def network_train(train_set, val_set, classification,
     time = 1
     for idxe, epoch in enumerate(range(n_epoch)):
         shuffle(train_set) # In-place dataset shuffle when new epoch begins: more relevant batches / GD.
+
         loss = 0.
         batches = list(_make_batch(train_set, batch_size=batch_size))
         for idxb, batch in enumerate(batches):
@@ -309,16 +324,20 @@ def network_train(train_set, val_set, classification,
                 dbg = True if debug and idxb == len(batches) - 1 and idxr == len(batch) - 1 else False
                 _update_weights(network, data, alpha, dbg)
             time += 1 # Update time for Adam gradient descent after each batch.
+
         train_error, val_error = _network_metrics(network, metrics, train_set, val_set, classification)
         print('    epoch=%03d, alpha=%.3f, loss=%09.3f, train_error=%.3f%%, val_error=%.3f%%' % (epoch, alpha, loss, train_error, val_error))
+
         if not classification and idxe != n_epoch - 1: # Regression: reset before each new epoch except last one.
             output_layer = network[-1]
             assert len(output_layer) == 1, 'Regression: only one output allowed.'
             output_neuron = output_layer[0]
             output_neuron['expected'] = np.array([]) # Reset expected values to compute loss.
             output_neuron['predicted'] = np.array([]) # Reset predicted values to compute loss.
+
     if debug:
         _network_debug_plot(network)
+
     return network, metrics
 
 def network_evaluate(data_set, network, classification):
@@ -328,6 +347,7 @@ def network_evaluate(data_set, network, classification):
         assert len(output_layer) == 1, 'Regression: only one output allowed.'
         output_neuron = output_layer[0]
         mean_square_error = _mean_squared_error(output_neuron['expected'], output_neuron['predicted']) # MSE scaled.
+
     for row in data_set:
         target = row[-1]
         predicted = _network_predict(network, row, classification)
@@ -341,5 +361,7 @@ def network_evaluate(data_set, network, classification):
             square_error = _mean_squared_error(expected, predicted)
             if square_error < mean_square_error:
                 good_predictions += 1
+
     error = (len(data_set) - good_predictions)*100./len(data_set) # Error %
+
     return predictions, error
