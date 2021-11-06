@@ -4,19 +4,33 @@
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from random import random, shuffle
-from math import exp, log2
+from math import exp, log2, sqrt
 import matplotlib.pyplot as plt
 import numpy as np
 
 SCALER_PIPELINE_X = None # Scale data: different scales across input variables increase problem difficulty.
 SCALER_PIPELINE_Y = None # Scale target variable for regression.
 
+def _initialize_weights(n_previous, activation_fct):
+    weights = np.array([random() for i in range(n_previous)])
+
+    if activation_fct == 'sigmoid':
+        lower, upper = -(1.0 / sqrt(n_previous)), (1.0 / sqrt(n_previous))
+        weights = lower + weights * (upper - lower) # Xavier initialization.
+    elif activation_fct == 'relu':
+        std = sqrt(2.0 / n_previous)
+        weights = weights * std # He initialization.
+    else:
+        assert True, 'Error: unknown transfer fonction.'
+
+    return weights
+
 def _initialize_network(n_inputs, n_hidden, hidden_af, n_outputs, output_af,
                         classification, beta1, beta2, debug):
     assert n_hidden >= n_outputs, 'n_hidden < n_outputs: may result in information loss.'
     adam = beta1 is not None and beta2 is not None # Adam or SGD
     network = list()
-    hidden_layer = [{'weights': [random() for i in range(n_inputs)]} for i in range(n_hidden)]
+    hidden_layer = [{'weights': _initialize_weights(n_inputs, hidden_af)} for i in range(n_hidden)]
     for neuron in hidden_layer:
         neuron['bias'] = random()
         neuron['activation_fct'] = hidden_af
@@ -28,7 +42,7 @@ def _initialize_network(n_inputs, n_hidden, hidden_af, n_outputs, output_af,
     if not classification: # Regression: only one linear output allowed.
         assert n_outputs == 1, 'Regression: only one output allowed.'
         assert output_af == 'linear', 'Regression: only linear output allowed.'
-    output_layer = [{'weights': [random() for i in range(n_hidden)]} for i in range(n_outputs)]
+    output_layer = [{'weights': _initialize_weights(n_hidden, output_af)} for i in range(n_outputs)]
     for output_neuron in output_layer:
         output_neuron['bias'] = random()
         output_neuron['activation_fct'] = output_af
