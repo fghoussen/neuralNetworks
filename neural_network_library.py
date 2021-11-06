@@ -358,8 +358,7 @@ def network_evaluate(data_set, network, classification):
         else: # Regression.
             expected = SCALER_PIPELINE_Y.transform(np.array([target]).reshape(1, 1)).reshape(1, ) # Target (not scaled) -> expected (scaled).
             predicted = SCALER_PIPELINE_Y.transform(np.array([predicted]).reshape(1, 1)).reshape(1, ) # Predicted (not scaled) -> predicted (scaled).
-            square_error = _mean_squared_error(expected, predicted)
-            if square_error < mean_square_error:
+            if np.abs(expected - predicted) < sqrt(mean_square_error):
                 good_predictions += 1
 
     error = (len(data_set) - good_predictions)*100./len(data_set) # Error %
