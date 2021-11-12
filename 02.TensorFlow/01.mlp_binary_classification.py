@@ -20,6 +20,7 @@ X = X.astype('float32')
 y = LabelEncoder().fit_transform(y)
 # split into train and test datasets
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33)
+print('data shape: train', X_train.shape, y_train.shape, 'test', X_test.shape, y_test.shape)
 # determine the number of input features
 n_features = X_train.shape[1]
 # define model
