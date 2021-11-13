@@ -30,7 +30,7 @@ x_tmp = Dense(8, activation='relu', kernel_initializer='he_normal')(x_tmp)
 x_out = Dense(1, activation='sigmoid', kernel_initializer='glorot_normal')(x_tmp)
 model = Model(inputs=x_inp, outputs=x_out)
 # compile the model
-model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['AUC'])
 # fit the model
 model.fit(X_train, y_train, epochs=150, batch_size=32, verbose=0)
 # evaluate the model
