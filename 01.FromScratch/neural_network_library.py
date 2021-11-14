@@ -172,7 +172,7 @@ def _compute_loss(network, classification, target, dbg):
     for j in range(len(output_layer)):
         output_neuron = output_layer[j]
         error = output_neuron['output'] - expected[j] # Error = output - expected <=> GD with minus (-= alpha * grad).
-        output_neuron['loss'] = error
+        output_neuron['loss'] = error # Loss is minimized (better for theoretical/math purposes), metrics are not.
         if dbg:
             output_neuron['debug_loss'].append(output_neuron['loss'])
 
@@ -362,17 +362,17 @@ def network_evaluate(data_set, network, classification):
         output_neuron = output_layer[0]
         mean_square_error = _mean_squared_error(output_neuron['expected'], output_neuron['predicted']) # MSE scaled.
 
-    for row in data_set:
+    for row in data_set: # Metrics measure improvements (better for user/human purposes) according to loss decrease.
         target = row[-1]
         predicted = _network_predict(network, row, classification)
         predictions.append(predicted)
         if classification:
-            if predicted == target:
+            if predicted == target: # Accuracy metric.
                 good_predictions += 1
         else: # Regression.
             expected = SCALER_PIPELINE_Y.transform(np.array([target]).reshape(1, 1)).reshape(1, ) # Target (not scaled) -> expected (scaled).
             predicted = SCALER_PIPELINE_Y.transform(np.array([predicted]).reshape(1, 1)).reshape(1, ) # Predicted (not scaled) -> predicted (scaled).
-            if np.abs(expected - predicted) < sqrt(mean_square_error):
+            if np.abs(expected - predicted) < sqrt(mean_square_error): # Mean squared error metric.
                 good_predictions += 1
 
     error = (len(data_set) - good_predictions)*100./len(data_set) # Error %
