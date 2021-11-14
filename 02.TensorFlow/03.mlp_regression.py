@@ -10,6 +10,7 @@ from pandas import read_csv
 from sklearn.model_selection import train_test_split
 from tensorflow.keras import Input, Model
 from tensorflow.keras.layers import Dense
+# define r2_score metric
 from keras import backend as K
 def r2_score(y_true, y_pred):
     SSR = K.sum(K.square(y_true - y_pred))
