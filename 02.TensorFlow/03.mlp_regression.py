@@ -10,6 +10,11 @@ from pandas import read_csv
 from sklearn.model_selection import train_test_split
 from tensorflow.keras import Input, Model
 from tensorflow.keras.layers import Dense
+from keras import backend as K
+def r2_score(y_true, y_pred):
+    SSR = K.sum(K.square(y_true - y_pred))
+    SST = K.sum(K.square(y_true - K.mean(y_true)))
+    return (1. - SSR/(SST + K.epsilon()))
 # load the dataset
 df = read_csv('housing.csv', header=None)
 # split into input and output columns
@@ -26,12 +31,12 @@ x_tmp = Dense(8, activation='relu', kernel_initializer='he_normal')(x_tmp)
 x_out = Dense(1, activation='linear')(x_tmp)
 model = Model(inputs=x_inp, outputs=x_out)
 # compile the model
-model.compile(optimizer='adam', loss='mse')
+model.compile(optimizer='adam', loss='mse', metrics=[r2_score])
 # fit the model
 model.fit(X_train, y_train, epochs=150, batch_size=32, verbose=0)
 # evaluate the model
-error = model.evaluate(X_test, y_test, verbose=0)
-print('test set - mse: %.3f, rmse: %.3f' % (error, sqrt(error)))
+error, r2_score = model.evaluate(X_test, y_test, verbose=0)
+print('test set - mse: %.3f, rmse: %.3f, r2_score: %.3f ' % (error, sqrt(error), r2_score))
 # make a prediction
 row, target = [float(val) for val in X_test[0]], y_test[0]
 yhat = model.predict([row])
