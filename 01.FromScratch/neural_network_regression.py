@@ -39,7 +39,7 @@ def main():
     x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.25)
 
     # Train and test neural network.
-    n_outputs, n_hidden = 1, 1 # Regression: only one output.
+    n_outputs, n_hidden = 1, 100 # Regression: only one output.
     n_epoch, alpha = 200, 0.001
     for idxl, beta1, beta2, batch_size in zip([1, 2], [None, 0.9], [None, 0.999], [4, 4]):
         for idxc, activation_function in zip([0, 3], ['sigmoid', 'relu']):
