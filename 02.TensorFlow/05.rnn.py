@@ -36,7 +36,7 @@ X = X.reshape((X.shape[0], X.shape[1], 1))
 # split into train/test
 n_test = 12 # Use last 12 months as testing set.
 X_train, X_test, y_train, y_test = X[:-n_test], X[-n_test:], y[:-n_test], y[-n_test:]
-print('data shape: train', X_train.shape, y_train.shape, 'test', X_test.shape, y_test.shape)
+print('Data shape: train', X_train.shape, y_train.shape, 'test', X_test.shape, y_test.shape)
 # define model
 x_inp = Input(shape=(n_steps, 1))
 x_tmp = LSTM(100, activation='relu', kernel_initializer='he_normal')(x_inp)
@@ -44,14 +44,15 @@ x_tmp = Dense(50, activation='relu', kernel_initializer='he_normal')(x_tmp)
 x_tmp = Dense(50, activation='relu', kernel_initializer='he_normal')(x_tmp)
 x_out = Dense(1)(x_tmp)
 model = Model(inputs=x_inp, outputs=x_out)
+model.summary()
 # compile the model
 model.compile(optimizer='adam', loss='mse', metrics=['mae'])
 # fit the model
 model.fit(X_train, y_train, epochs=350, batch_size=32, verbose=0, validation_data=(X_test, y_test))
 # evaluate the model
 mse, mae = model.evaluate(X_test, y_test, verbose=0)
-print('test set - mse: %.3f, rmse: %.3f, mae: %.3f' % (mse, sqrt(mse), mae))
+print('Test set - mse: %.3f, rmse: %.3f, mae: %.3f' % (mse, sqrt(mse), mae))
 # make a prediction
 row, target = [float(val) for val in X_test[0]], y_test[0]
 yhat = model.predict([row])
-print('predicted: %.3f, target: %.3f' % (yhat, target))
+print('Predicted: %.3f, target: %.3f' % (yhat, target))
