@@ -10,6 +10,7 @@ from pandas import read_csv
 from sklearn.model_selection import train_test_split
 from tensorflow.keras import Input, Model
 from tensorflow.keras.layers import Dense
+from matplotlib import pyplot
 # define r2_score metric
 from keras import backend as K
 def r2_score(y_true, y_pred):
@@ -35,7 +36,15 @@ model.summary()
 # compile the model
 model.compile(optimizer='adam', loss='mse', metrics=[r2_score])
 # fit the model
-model.fit(X_train, y_train, epochs=150, batch_size=32, verbose=0)
+history = model.fit(X_train, y_train, epochs=150, batch_size=32, verbose=0, validation_split=0.3)
+# plot learning curves
+pyplot.title('Learning Curves')
+pyplot.xlabel('Epoch')
+pyplot.ylabel('MSE')
+pyplot.plot(history.history['loss'], label='train')
+pyplot.plot(history.history['val_loss'], label='val')
+pyplot.legend()
+pyplot.show()
 # evaluate the model
 error, r2_score = model.evaluate(X_test, y_test, verbose=0)
 print('Test set - mse: %.3f, rmse: %.3f, r2_score: %.3f ' % (error, sqrt(error), r2_score))

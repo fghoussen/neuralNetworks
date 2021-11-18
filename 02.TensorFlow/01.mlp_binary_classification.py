@@ -10,6 +10,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from tensorflow.keras import Input, Model
 from tensorflow.keras.layers import Dense
+from matplotlib import pyplot
 # load the dataset
 df = read_csv('ionosphere.csv', header=None)
 # split into input and output columns
@@ -33,7 +34,15 @@ model.summary()
 # compile the model
 model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['AUC'])
 # fit the model
-model.fit(X_train, y_train, epochs=150, batch_size=32, verbose=0)
+history = model.fit(X_train, y_train, epochs=150, batch_size=32, verbose=0, validation_split=0.3)
+# plot learning curves
+pyplot.title('Learning Curves')
+pyplot.xlabel('Epoch')
+pyplot.ylabel('Cross Entropy')
+pyplot.plot(history.history['loss'], label='train')
+pyplot.plot(history.history['val_loss'], label='val')
+pyplot.legend()
+pyplot.show()
 # evaluate the model
 loss, acc = model.evaluate(X_test, y_test, verbose=0)
 print('Test set - accuracy: %.3f, loss: %.3f' % (acc, loss))

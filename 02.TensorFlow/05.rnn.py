@@ -9,6 +9,7 @@ from numpy import sqrt, asarray
 from pandas import read_csv
 from tensorflow.keras import Input, Model
 from tensorflow.keras.layers import Dense, LSTM
+from matplotlib import pyplot
 # split a univariate sequence into samples
 def split_sequence(sequence, n_steps):
     X, y = list(), list()
@@ -48,7 +49,15 @@ model.summary()
 # compile the model
 model.compile(optimizer='adam', loss='mse', metrics=['mae'])
 # fit the model
-model.fit(X_train, y_train, epochs=350, batch_size=32, verbose=0, validation_data=(X_test, y_test))
+history = model.fit(X_train, y_train, epochs=350, batch_size=32, verbose=0, validation_data=(X_test, y_test), validation_split=0.3)
+# plot learning curves
+pyplot.title('Learning Curves')
+pyplot.xlabel('Epoch')
+pyplot.ylabel('MSE')
+pyplot.plot(history.history['loss'], label='train')
+pyplot.plot(history.history['val_loss'], label='val')
+pyplot.legend()
+pyplot.show()
 # evaluate the model
 mse, mae = model.evaluate(X_test, y_test, verbose=0)
 print('Test set - mse: %.3f, rmse: %.3f, mae: %.3f' % (mse, sqrt(mse), mae))
