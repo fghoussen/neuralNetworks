@@ -9,6 +9,7 @@ from numpy import asarray, unique, argmax, set_printoptions
 from tensorflow.keras.datasets.mnist import load_data
 from tensorflow.keras import Input, Model
 from tensorflow.keras.layers import Dense, Conv2D, MaxPool2D, Flatten, Dropout
+from tensorflow.keras.models import load_model
 from matplotlib import pyplot
 # load dataset
 (X_train, y_train), (X_test, y_test) = load_data()
@@ -38,6 +39,8 @@ model.summary()
 model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 # fit the model
 history = model.fit(X_train, y_train, epochs=10, batch_size=128, verbose=0, validation_split=0.3)
+# save model to file
+model.save('model.h5')
 # plot learning curves
 pyplot.title('Learning Curves')
 pyplot.xlabel('Epoch')
@@ -49,6 +52,8 @@ pyplot.show()
 # evaluate the model
 loss, acc = model.evaluate(X_test, y_test, verbose=0)
 print('Test set - accuracy: %.3f, loss: %.3f' % (acc, loss))
+# load the model from file
+model = load_model('model.h5')
 # make a prediction
 image, target = X_test[0], y_test[0]
 yhat = model.predict(asarray([image]))
