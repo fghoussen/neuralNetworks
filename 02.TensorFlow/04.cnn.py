@@ -10,6 +10,7 @@ from tensorflow.keras.datasets.mnist import load_data
 from tensorflow.keras import Input, Model
 from tensorflow.keras.layers import Dense, Conv2D, MaxPool2D, Flatten, Dropout, BatchNormalization
 from tensorflow.keras.models import load_model
+from tensorflow.keras.callbacks import EarlyStopping
 from matplotlib import pyplot
 # load dataset
 (X_train, y_train), (X_test, y_test) = load_data()
@@ -38,8 +39,10 @@ model = Model(inputs=x_inp, outputs=x_out)
 model.summary()
 # define loss and optimizer
 model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+# configure early stopping
+es = EarlyStopping(monitor='val_loss', patience=100)
 # fit the model
-history = model.fit(X_train, y_train, epochs=10, batch_size=128, verbose=0, validation_split=0.3)
+history = model.fit(X_train, y_train, epochs=10, batch_size=128, verbose=0, validation_split=0.3, callbacks=[es])
 # save model to file
 model.save('model.h5')
 # plot learning curves

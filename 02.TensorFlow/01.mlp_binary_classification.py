@@ -11,6 +11,7 @@ from sklearn.preprocessing import LabelEncoder
 from tensorflow.keras import Input, Model
 from tensorflow.keras.layers import Dense, BatchNormalization
 from tensorflow.keras.models import load_model
+from tensorflow.keras.callbacks import EarlyStopping
 from matplotlib import pyplot
 # load the dataset
 df = read_csv('ionosphere.csv', header=None)
@@ -36,8 +37,10 @@ model = Model(inputs=x_inp, outputs=x_out)
 model.summary()
 # compile the model
 model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['AUC'])
+# configure early stopping
+es = EarlyStopping(monitor='val_loss', patience=100)
 # fit the model
-history = model.fit(X_train, y_train, epochs=150, batch_size=32, verbose=0, validation_split=0.3)
+history = model.fit(X_train, y_train, epochs=150, batch_size=32, verbose=0, validation_split=0.3, callbacks=[es])
 # save model to file
 model.save('model.h5')
 # plot learning curves
