@@ -8,7 +8,7 @@ tf.autograph.set_verbosity(3) # turn off tensor flow messages
 from numpy import asarray, unique, argmax, set_printoptions
 from tensorflow.keras.datasets.mnist import load_data
 from tensorflow.keras import Input, Model
-from tensorflow.keras.layers import Dense, Conv2D, MaxPool2D, Flatten, Dropout
+from tensorflow.keras.layers import Dense, Conv2D, MaxPool2D, Flatten, Dropout, BatchNormalization
 from tensorflow.keras.models import load_model
 from matplotlib import pyplot
 # load dataset
@@ -29,6 +29,7 @@ X_test = X_test.astype('float32') / 255.0
 x_inp = Input(shape=inp_shape)
 x_tmp = Conv2D(32, (3,3), activation='relu', kernel_initializer='he_uniform', input_shape=inp_shape)(x_inp)
 x_tmp = MaxPool2D((2, 2))(x_tmp)
+x_tmp = BatchNormalization()(x_tmp)
 x_tmp = Flatten()(x_tmp)
 x_tmp = Dense(100, activation='relu', kernel_initializer='he_uniform')(x_tmp)
 x_tmp = Dropout(0.5)(x_tmp)

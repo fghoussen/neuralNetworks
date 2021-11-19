@@ -9,7 +9,7 @@ from pandas import read_csv
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from tensorflow.keras import Input, Model
-from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import Dense, BatchNormalization
 from tensorflow.keras.models import load_model
 from matplotlib import pyplot
 # load the dataset
@@ -28,7 +28,9 @@ n_features = X_train.shape[1]
 # define model
 x_inp = Input(shape=(n_features,))
 x_tmp = Dense(10, activation='relu', kernel_initializer='he_normal')(x_inp)
+x_tmp = BatchNormalization()(x_tmp)
 x_tmp = Dense(8, activation='relu', kernel_initializer='he_normal')(x_tmp)
+x_tmp = BatchNormalization()(x_tmp)
 x_out = Dense(1, activation='sigmoid', kernel_initializer='glorot_normal')(x_tmp)
 model = Model(inputs=x_inp, outputs=x_out)
 model.summary()
