@@ -36,7 +36,7 @@ def main():
 
     # Train and test neural network.
     n_outputs, n_hidden = n_classes, n_classes # Classification: as many outputs than classes.
-    n_epoch, alpha = 200, 0.001
+    n_epoch, alpha, momentum = 200, 0.001, 0.75 # Note: High momentum may cause overflow.
     for idxl, beta1, beta2, batch_size in zip([1, 2], [None, 0.9], [None, 0.999], [4, 4]):
         for idxc, activation_function in zip([0, 3], ['sigmoid', 'relu']):
             # Train neural network.
@@ -44,7 +44,7 @@ def main():
             val_set = [[x_val[i, 0], x_val[i, 1], y_val[i]] for i in range(x_val.shape[0])]
             network, metrics = nnl.network_train(train_set, val_set, classification,
                                                  n_hidden, activation_function, n_outputs, activation_function,
-                                                 n_epoch, alpha, beta1, beta2,
+                                                 n_epoch, alpha, momentum, beta1, beta2,
                                                  batch_size=batch_size, debug=False)
             predictions, error = nnl.network_evaluate(train_set, network, classification)
             if idxc == 0:

@@ -7,6 +7,11 @@ from random import random, shuffle
 from math import exp, log2, sqrt
 import matplotlib.pyplot as plt
 import numpy as np
+import sys
+import traceback
+import warnings
+
+warnings.simplefilter('error') # Turn all warnings into errors.
 
 SCALER_PIPELINE_X = None # Scale data: different scales across input variables increase problem difficulty.
 SCALER_PIPELINE_Y = None # Scale target variable for regression.
@@ -150,8 +155,11 @@ def _forward_propagate(network, data):
 def _cross_entropy(expected, predicted, eps=1e-15):
     return -sum([expected[i]*log2(predicted[i]+eps) for i in range(len(expected))])
 
-def _softmax(vector):
-    e = np.exp(vector)
+def _softmax(x):
+    # For numerical stability, it is recommended to substract max(x) from x.
+    # e^(x - max(x)) / sum(e^(x - max(x))) = e^x / e^max(x) * 1. / sum(e^x / e^max(x)) = e^x / sum(e^x)
+    num_stable_x = x - np.max(x)
+    e = np.exp(num_stable_x)
     return e / e.sum()
 
 def _mean_squared_error(expected, predicted):
@@ -190,10 +198,25 @@ def _compute_loss(network, classification, target, dbg):
 
     return loss
 
-def _adam(neuron, beta1, beta2, time):
+def _compute_gradient(neuron, momentum, beta1, beta2, time):
+    neuron['gradient'] = _transfer_derivative(neuron['output'], neuron['activation_fct'])
     adam = beta1 is not None and beta2 is not None # Adam or SGD
-    if not adam:
-        return # Gradient does not need to be modified.
+    if adam:
+        _adam(neuron, beta1, beta2, time)
+    else:
+        _sgd(neuron, momentum)
+
+def _sgd(neuron, momentum):
+    if momentum is not None and 'prev_gradient' in neuron:
+        neuron['gradient'] += momentum*neuron['prev_gradient']
+
+def _adam(neuron, beta1, beta2, time):
+    # Adam can be looked at as a combination of RMSprop and Stochastic Gradient Descent with momentum.
+    # It uses the squared gradients to scale the learning rate like RMSprop and it takes advantage of
+    # momentum by using moving average of the gradient (instead of gradient) like SGD with momentum.
+    # Adam is an adaptive learning rate method, which means, it computes individual learning rates for
+    # different parameters. Adam uses estimations of first and second moments of gradient to adapt the
+    # learning rate for each weight of the neural network.
     grad, mu, nu = neuron['gradient'], neuron['mu'], neuron['nu']
     mu = beta1 * mu + (1. - beta1) * grad    # Gradient mean.
     nu = beta2 * nu + (1. - beta2) * grad**2 # Gradient variance.
@@ -204,7 +227,7 @@ def _adam(neuron, beta1, beta2, time):
     eps = 1e-8 # Make sure we never divide by zero.
     neuron['gradient'] = mu_hat / (np.sqrt(nu_hat) + eps) # Modify gradient.
 
-def _backward_propagate_error(network, beta1, beta2, time, debug):
+def _backward_propagate_error(network, momentum, beta1, beta2, time, debug):
     for i in reversed(range(len(network))): # Looping backward from output to hidden layer.
         layer = network[i]
         if i == len(network)-1: # Output layer.
@@ -213,17 +236,17 @@ def _backward_propagate_error(network, beta1, beta2, time, debug):
                 neuron['gradient'] = 1. # Score s such that ds/ds = 1.
         else: # Hidden layer.
             for j in range(len(layer)):
+                neuron = layer[j]
                 error, next_layer = 0., network[i + 1]
                 for next_neuron in next_layer: # Looping over hidden layer output.
                     error += (next_neuron['weights'][j] * next_neuron['delta'])
-                neuron = layer[j]
                 neuron['error'] = error
-                neuron['gradient'] = _transfer_derivative(neuron['output'], neuron['activation_fct'])
+                _compute_gradient(neuron, momentum, beta1, beta2, time)
 
         for j in range(len(layer)):
             neuron = layer[j]
-            _adam(neuron, beta1, beta2, time)
             neuron['delta'] = neuron['error'] * neuron['gradient']
+            neuron['prev_gradient'] = neuron['gradient'] # Keep track of previous gradient for momentum.
             if debug:
                 neuron['debug_delta'].append(neuron['delta'])
                 neuron['debug_error'].append(neuron['error'])
@@ -314,7 +337,7 @@ def network_preprocess_data(scalers, x, y, classification):
 
 def network_train(train_set, val_set, classification,
                   n_hidden, hidden_af, n_outputs, output_af,
-                  n_epoch, alpha, beta1, beta2, # If beta1 = beta2 = None, we get SGD instead of Adam.
+                  n_epoch, alpha, momentum, beta1, beta2, # If beta1 = beta2 = None, we get SGD instead of Adam.
                   batch_size=16, debug=False):
     n_inputs = len(train_set[0]) - 1 # All data but not the target (associated to the data).
     network = _initialize_network(n_inputs, n_hidden, hidden_af, n_outputs, output_af, classification, beta1, beta2, debug)
@@ -324,23 +347,27 @@ def network_train(train_set, val_set, classification,
     for idxe, epoch in enumerate(range(n_epoch)):
         shuffle(train_set) # In-place dataset shuffle when new epoch begins: more relevant batches / GD.
 
-        loss = 0.
-        batches = list(_make_batch(train_set, batch_size=batch_size))
-        for idxb, batch in enumerate(batches):
-            for idxr, row in enumerate(batch): # First backpropagate
-                data, target = row[:-1], row[-1]
-                _forward_propagate(network, data)
-                dbg = True if debug and idxb == len(batches) - 1 and idxr == len(batch) - 1 else False
-                loss += _compute_loss(network, classification, target, dbg)
-                _backward_propagate_error(network, beta1, beta2, time, dbg)
-            for idxr, row in enumerate(batch): # Then update model: update neurons weights.
-                data = row[:-1]
-                dbg = True if debug and idxb == len(batches) - 1 and idxr == len(batch) - 1 else False
-                _update_weights(network, data, alpha, dbg)
-            time += 1 # Update time for Adam gradient descent after each batch.
+        try:
+            loss = 0.
+            batches = list(_make_batch(train_set, batch_size=batch_size))
+            for idxb, batch in enumerate(batches):
+                for idxr, row in enumerate(batch): # First backpropagate
+                    data, target = row[:-1], row[-1]
+                    _forward_propagate(network, data)
+                    dbg = True if debug and idxb == len(batches) - 1 and idxr == len(batch) - 1 else False
+                    loss += _compute_loss(network, classification, target, dbg)
+                    _backward_propagate_error(network, momentum, beta1, beta2, time, dbg)
+                for idxr, row in enumerate(batch): # Then update model: update neurons weights.
+                    data = row[:-1]
+                    dbg = True if debug and idxb == len(batches) - 1 and idxr == len(batch) - 1 else False
+                    _update_weights(network, data, alpha, dbg)
+                time += 1 # Update time for Adam gradient descent after each batch.
+        except:
+            traceback.print_exc() # Error occured (overflow, runtime error, warning, ...): print stack and quit.
+            sys.exit(1)
 
         train_error, val_error = _network_metrics(network, metrics, train_set, val_set, classification)
-        print('    epoch=%03d, alpha=%.3f, loss=%09.3f, train_error=%.3f%%, val_error=%.3f%%' % (epoch, alpha, loss, train_error, val_error))
+        print('    epoch=%03d, loss=%08.3f, train_error=%.3f%%, val_error=%.3f%%' % (epoch, loss, train_error, val_error))
 
         if not classification and idxe != n_epoch - 1: # Regression: reset before each new epoch except last one.
             output_layer = network[-1]
