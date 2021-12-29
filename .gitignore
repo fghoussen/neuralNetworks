@@ -2,3 +2,4 @@ __pycache__
 *.h5
 03.OpenCV/coco.*
 03.OpenCV/yolov3.*
+04.OpenAI.gym/*.npy
