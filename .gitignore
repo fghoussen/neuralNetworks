@@ -3,3 +3,4 @@ __pycache__
 03.OpenCV/coco.*
 03.OpenCV/yolov3.*
 04.OpenAI.gym/*.npy
+04.OpenAI.gym/cart_pole/*
