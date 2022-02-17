@@ -2,5 +2,6 @@ __pycache__
 *.h5
 03.OpenCV/coco.*
 03.OpenCV/yolov3.*
+03.OpenCV/enet-*
 04.OpenAI.gym/*.npy
 04.OpenAI.gym/cart_pole/*
