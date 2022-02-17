@@ -1,3 +1,6 @@
+# Article: https://arxiv.org/abs/1606.02147 ENet: A Deep Neural Network Architecture for Real-Time Semantic Segmentation
+# Dataset: https://www.cityscapes-dataset.com/
+
 # Import library.
 import cv2
 import sys
