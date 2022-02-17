@@ -37,12 +37,12 @@ def getYOLOCfg():
     np.random.seed(42)
     colors = np.random.randint(0, 255, size=(len(labels), 3), dtype="uint8")
 
-    # load our YOLO object detector trained on COCO dataset (80 classes)
+    # Load our YOLO object detector trained on COCO dataset (80 classes).
     net = cv2.dnn.readNetFromDarknet('yolov3.cfg', 'yolov3.weights')
     net.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
     net.setPreferableTarget(cv2.dnn.DNN_TARGET_CPU)
 
-    # Determine only the *output* layer names that we need from YOLO
+    # Determine only the *output* layer names that we need from YOLO.
     ln = net.getLayerNames()
     ln = [ln[i - 1] for i in net.getUnconnectedOutLayers()]
 
@@ -117,7 +117,7 @@ def main():
         if not ret:
             continue
 
-        # run YOLO detection.
+        # Run YOLO detection.
         runYOLODetection(frame, colors, labels, net, ln, args)
 
         # Display the resulting frame.
